@@ -1,0 +1,7 @@
+{
+  "name": "HealthConnect",
+  "description": "Production-grade healthcare super-app frontend connecting patients with doctors, appointments, medical records, diagnostics, pharmacy, hospitals, blood banks, and emergency dispatch.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

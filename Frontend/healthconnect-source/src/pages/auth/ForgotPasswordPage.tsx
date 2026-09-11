@@ -1,0 +1,79 @@
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Mail, ArrowLeft, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Button } from '../../components/common/Button';
+import { Input } from '../../components/common/Input';
+
+export const ForgotPasswordPage: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      setSubmitted(true);
+    }, 800);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Reset your password</h2>
+        <p className="text-xs text-slate-500 mt-1">
+          Enter your verified email to receive a secure recovery code
+        </p>
+      </div>
+
+      {submitted ? (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-3">
+          <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
+          <h3 className="font-bold text-sm text-emerald-900">Recovery Instructions Sent</h3>
+          <p className="text-xs text-emerald-700 leading-relaxed">
+            If an account is associated with <strong>{email}</strong>, we have dispatched a secure
+            password reset link.
+          </p>
+          <Link to="/login" className="inline-block mt-2">
+            <Button variant="primary" size="sm">
+              Return to Login
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Registered Email Address"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="patient@domain.com"
+            leftIcon={<Mail className="w-4 h-4" />}
+            required
+          />
+
+          <Button
+            type="submit"
+            variant="primary"
+            className="w-full py-2.5 font-bold shadow-sm"
+            isLoading={isLoading}
+          >
+            Send Reset Instructions
+          </Button>
+
+          <div className="text-center pt-2">
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-teal-600 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Login</span>
+            </Link>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+};
