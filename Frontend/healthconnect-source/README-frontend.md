@@ -19,7 +19,7 @@ Set `VITE_DEMO_MODE=false` and configure the Firebase/API environment values for
 - `npm test`: date/slot validation, search and specialization filters, checkout constraints, live failure propagation, demo scenarios, account-isolated persistence and storage failures.
 - `npm run lint`: TypeScript checking.
 - `npm run build`: production bundle.
-- Frontend CI runs these checks on frontend changes and pull requests.
+- Frontend CI runs these checks, then Chromium smoke checks of login, profile persistence, booking/cancellation, patient pages, saved settings and preview scenario recovery. Desktop/mobile screenshots are uploaded as a workflow artifact.
 
 ## Browser smoke checklist
 

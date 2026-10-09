@@ -29,3 +29,15 @@ jobs:
       - run: npm run build
         env:
           VITE_DEMO_MODE: 'true'
+      - run: npm install --no-save --package-lock=false playwright
+      - run: npx playwright install --with-deps chromium
+      - name: Browser smoke
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/healthconnect-preview.log 2>&1 &
+          node tests/browser-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-browser-smoke
+          path: Frontend/healthconnect-source/test-results/
+          if-no-files-found: ignore

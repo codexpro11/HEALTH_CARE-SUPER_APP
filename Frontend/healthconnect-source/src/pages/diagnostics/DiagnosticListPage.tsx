@@ -142,10 +142,10 @@ export const DiagnosticListPage: React.FC = () => {
                 {/* Included parameters preview */}
                 <div className="mt-3">
                   <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1 transition-colors">
-                    Includes {test.parametersCount} Parameters
+                    Includes {test.parametersCount ?? 'multiple'} parameters
                   </span>
                   <div className="flex flex-wrap gap-1">
-                    {test.parametersSample.map((param) => (
+                    {(test.parametersSample ?? []).map((param) => (
                       <span
                         key={param}
                         className="text-[11px] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md font-medium transition-colors"

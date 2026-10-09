@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   UserCheck,
   Filter,
@@ -27,7 +27,9 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { ErrorState } from '../../components/common/ErrorState';
 
 export const DoctorListPage: React.FC = () => {
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get('search') ?? '');
+  useEffect(() => { setSearch(searchParams.get('search') ?? ''); }, [searchParams]);
   const [specialization, setSpecialization] = useState('ALL');
   const [consultationType, setConsultationType] = useState('ALL');
   const [sortBy, setSortBy] = useState<'rating' | 'experience' | 'fee'>('rating');
