@@ -39,6 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearError = () => setError(null);
 
   const fetchUserProfiles = async () => {
+    const uid = isDemoMode ? null : getFirebaseAuth().currentUser?.uid;
     const response = await userApi.getCurrentUser();
     let profile = response.data;
     if (profile.role === 'PATIENT') {
@@ -51,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         dateOfBirth: patient.dateOfBirth ?? profile.dateOfBirth,
       };
     }
+    if (!isDemoMode && getFirebaseAuth().currentUser?.uid !== uid) return;
     setUser(profile);
   };
 
@@ -65,6 +67,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(true);
         if (!firebaseUser) {
           setUser(null);
+          queryClient.clear();
+          useCartStore.getState().clearCart();
           setIsLoading(false);
           return;
         }
