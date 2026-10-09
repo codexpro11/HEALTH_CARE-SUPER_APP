@@ -1,3 +1,4 @@
+import { demoStorageKey } from '../lib/demo';
 import { apiClient, executeWithFallback } from './axios';
 import { ApiResponse, AppNotification } from '../types';
 import { mockNotifications } from '../data/mockData';
@@ -6,7 +7,7 @@ const NOTIFS_STORAGE_KEY = 'hc_user_notifications';
 
 function getStoredNotifications(): AppNotification[] {
   try {
-    const saved = localStorage.getItem(NOTIFS_STORAGE_KEY);
+    const saved = localStorage.getItem(demoStorageKey(NOTIFS_STORAGE_KEY));
     if (saved) return JSON.parse(saved);
   } catch {
     // ignore
@@ -16,7 +17,7 @@ function getStoredNotifications(): AppNotification[] {
 
 function saveNotifications(items: AppNotification[]) {
   try {
-    localStorage.setItem(NOTIFS_STORAGE_KEY, JSON.stringify(items));
+    localStorage.setItem(demoStorageKey(NOTIFS_STORAGE_KEY), JSON.stringify(items));
   } catch {
     // ignore
   }

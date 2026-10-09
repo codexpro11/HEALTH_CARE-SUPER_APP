@@ -42,12 +42,13 @@ export const PharmacyStorePage: React.FC = () => {
 
   const categories = [
     { id: 'ALL', label: 'All Products' },
-    { id: 'Cardiovascular', label: 'Cardiovascular' },
-    { id: 'Diabetes Care', label: 'Diabetes' },
-    { id: 'Respiratory', label: 'Respiratory' },
-    { id: 'Pain Relief', label: 'Pain Relief' },
-    { id: 'Vitamins & Supplements', label: 'Vitamins & Wellness' },
-    { id: 'Digestive Health', label: 'Digestive' },
+    { id: 'CARDIOLOGY', label: 'Cardiovascular' },
+    { id: 'DIABETES', label: 'Diabetes' },
+    { id: 'RESPIRATORY', label: 'Respiratory' },
+    { id: 'ANALGESIC', label: 'Pain Relief' },
+    { id: 'VITAMINS', label: 'Vitamins & Wellness' },
+    { id: 'ANTIBIOTIC', label: 'Antibiotics' },
+    { id: 'FIRST_AID', label: 'First Aid' },
   ];
 
   const handleRxUpload = (e: React.FormEvent) => {

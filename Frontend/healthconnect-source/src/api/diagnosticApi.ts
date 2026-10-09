@@ -1,3 +1,5 @@
+import { validateBooking } from '../lib/frontend';
+import { demoStorageKey } from '../lib/demo';
 import { apiClient, executeWithFallback } from './axios';
 import {
   ApiResponse,
@@ -15,7 +17,7 @@ const DIAG_BOOKINGS_KEY = 'hc_diag_bookings';
 
 function getStoredDiagBookings(): DiagnosticBooking[] {
   try {
-    const saved = localStorage.getItem(DIAG_BOOKINGS_KEY);
+    const saved = localStorage.getItem(demoStorageKey(DIAG_BOOKINGS_KEY));
     if (saved) return JSON.parse(saved);
   } catch {
     // ignore
@@ -74,12 +76,15 @@ export const diagnosticApi = {
     scheduledTime: string;
     patientAddress?: string;
   }): Promise<ApiResponse<DiagnosticBooking>> => {
+    const invalid = validateBooking(booking.scheduledDate, booking.scheduledTime);
+    if (invalid) throw new Error(invalid);
     return executeWithFallback(
       () => apiClient.post('/api/v1/diagnostics/bookings', booking),
       () => {
         const center = mockDiagnosticCenters.find((c) => c.id === booking.centerId) || mockDiagnosticCenters[0];
         const test = mockDiagnosticTests.find((t) => t.id === booking.testId) || mockDiagnosticTests[0];
 
+        if (booking.collectionType === 'HOME_COLLECTION' && !test.isHomeCollectionAvailable) throw new Error('This test requires a center visit.');
         const newBooking: DiagnosticBooking = {
           id: `diag-book-${Date.now()}`,
           bookingRef: `DB-2026-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -99,9 +104,9 @@ export const diagnosticApi = {
         const current = getStoredDiagBookings();
         const updated = [newBooking, ...current];
         try {
-          localStorage.setItem(DIAG_BOOKINGS_KEY, JSON.stringify(updated));
+          localStorage.setItem(demoStorageKey(DIAG_BOOKINGS_KEY), JSON.stringify(updated));
         } catch {
-          // ignore
+          throw new Error('The diagnostic booking could not be saved in this browser.');
         }
         return newBooking;
       },

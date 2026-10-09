@@ -3,20 +3,31 @@ import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { getFirebaseAuth } from '../../firebase/config';
+import { isDemoMode } from '../../lib/demo';
+import { errorMessage } from '../../lib/request';
 
 export const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    setError(null);
+    try {
+      if (!isDemoMode) await sendPasswordResetEmail(getFirebaseAuth(), email.trim());
       setSubmitted(true);
-    }, 800);
+    } catch (failure) {
+      setError(errorMessage(failure));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -24,17 +35,17 @@ export const ForgotPasswordPage: React.FC = () => {
       <div>
         <h2 className="text-xl font-bold text-slate-900 tracking-tight">Reset your password</h2>
         <p className="text-xs text-slate-500 mt-1">
-          Enter your verified email to receive a secure recovery code
+          Enter your email to request a password reset link
         </p>
       </div>
 
+      {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
       {submitted ? (
         <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-3">
           <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
-          <h3 className="font-bold text-sm text-emerald-900">Recovery Instructions Sent</h3>
+          <h3 className="font-bold text-sm text-emerald-900">{isDemoMode ? 'Demo reset preview' : 'Reset request received'}</h3>
           <p className="text-xs text-emerald-700 leading-relaxed">
-            If an account is associated with <strong>{email}</strong>, we have dispatched a secure
-            password reset link.
+            {isDemoMode ? 'This is a preview. No email was sent.' : <>If an account is associated with <strong>{email}</strong>, you will receive a password reset link.</>}
           </p>
           <Link to="/login" className="inline-block mt-2">
             <Button variant="primary" size="sm">

@@ -1,3 +1,6 @@
+import { validateCheckout } from '../lib/frontend';
+import { getDemoSession } from '../lib/demo';
+import { demoStorageKey } from '../lib/demo';
 import { apiClient, executeWithFallback } from './axios';
 import {
   ApiResponse,
@@ -11,7 +14,7 @@ const ORDERS_STORAGE_KEY = 'hc_pharmacy_orders';
 
 function getStoredOrders(): PharmacyOrder[] {
   try {
-    const saved = localStorage.getItem(ORDERS_STORAGE_KEY);
+    const saved = localStorage.getItem(demoStorageKey(ORDERS_STORAGE_KEY));
     if (saved) return JSON.parse(saved);
   } catch {
     // ignore
@@ -84,6 +87,8 @@ export const pharmacyApi = {
     paymentMethod: any;
     prescriptionUploaded?: boolean;
   }): Promise<ApiResponse<PharmacyOrder>> => {
+    const invalid = validateCheckout(payload.items, payload.deliveryAddress);
+    if (invalid) throw new Error(invalid);
     return executeWithFallback(
       () => apiClient.post('/api/v1/pharmacy/orders', payload),
       () => {
@@ -91,14 +96,14 @@ export const pharmacyApi = {
           (acc, item) => acc + (item.medicine.discountPrice || item.medicine.price) * item.quantity,
           0
         );
-        const discount = Math.round(subtotal * 0.1 * 100) / 100;
+        const discount = 0;
         const deliveryFee = subtotal > 30 ? 0 : 4.99;
         const finalTotal = Math.round((subtotal - discount + deliveryFee) * 100) / 100;
 
         const newOrder: PharmacyOrder = {
           id: `ord-${Date.now()}`,
           orderNumber: `HC-ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-          patientId: 'usr-patient-001',
+          patientId: getDemoSession()?.id ?? 'demo-patient',
           items: payload.items,
           totalAmount: subtotal,
           discountAmount: discount,
@@ -119,7 +124,7 @@ export const pharmacyApi = {
             {
               status: 'CONFIRMED',
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              description: 'Payment authorized and verified',
+              description: 'Demo order confirmed; no payment processed',
             },
             {
               status: 'PHARMACY_PROCESSING',
@@ -132,9 +137,9 @@ export const pharmacyApi = {
         const current = getStoredOrders();
         const updated = [newOrder, ...current];
         try {
-          localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updated));
+          localStorage.setItem(demoStorageKey(ORDERS_STORAGE_KEY), JSON.stringify(updated));
         } catch {
-          // ignore
+          throw new Error('The order could not be saved in this browser.');
         }
         return newOrder;
       },

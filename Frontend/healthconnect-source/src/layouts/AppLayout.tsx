@@ -26,6 +26,7 @@ import {
   MonitorSmartphone,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { isDemoMode } from '../lib/demo';
 import { useCartStore } from '../stores/cartStore';
 import { useEmergencyStore } from '../stores/emergencyStore';
 import { useThemeStore } from '../stores/themeStore';
@@ -151,8 +152,8 @@ export const AppLayout: React.FC = () => {
               <span>Emergency SOS</span>
             </button>
 
-            {/* Role switch pill */}
-            <div className="relative">
+            {/* Demo-only role switch */}
+            {isDemoMode && <div className="relative">
               <button
                 type="button"
                 onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
@@ -168,7 +169,7 @@ export const AppLayout: React.FC = () => {
               {isRoleDropdownOpen && (
                 <div className="absolute bottom-full left-0 w-full mb-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-1.5 z-30 space-y-0.5">
                   <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 px-2 py-1 block uppercase tracking-wider">
-                    Switch Test Persona
+                    Switch Demo Persona
                   </span>
                   {roles.map((r) => (
                     <button
@@ -189,6 +190,8 @@ export const AppLayout: React.FC = () => {
                 </div>
               )}
             </div>
+
+            }
 
             {/* Signout button */}
             <button
