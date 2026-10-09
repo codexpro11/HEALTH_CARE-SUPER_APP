@@ -10,6 +10,8 @@ import {
   MapPin,
   Check,
 } from 'lucide-react';
+import { dateAfterDays, localDate, validateBooking } from '../../lib/frontend';
+import { errorMessage } from '../../lib/request';
 import { diagnosticApi } from '../../api/diagnosticApi';
 import { DiagnosticTest } from '../../types';
 import { Card } from '../../components/common/Card';
@@ -24,9 +26,10 @@ import { ErrorState } from '../../components/common/ErrorState';
 export const DiagnosticListPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedTest, setSelectedTest] = useState<DiagnosticTest | null>(null);
-  const [bookingDate, setBookingDate] = useState('2026-09-15');
+  const [bookingDate, setBookingDate] = useState(() => dateAfterDays(1));
   const [isHomeCollection, setIsHomeCollection] = useState(true);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -42,6 +45,7 @@ export const DiagnosticListPage: React.FC = () => {
     mutationFn: (data: { testId: string; date: string; isHomeCollection: boolean }) =>
       diagnosticApi.bookTest(data.testId, data.date, data.isHomeCollection),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['diagnostic-bookings'] });
       setBookingSuccess(true);
       setTimeout(() => {
         setBookingSuccess(false);
@@ -52,10 +56,11 @@ export const DiagnosticListPage: React.FC = () => {
 
   const categories = [
     { id: 'ALL', label: 'All Test Panels' },
-    { id: 'Lipid & Cardiac', label: 'Cardiac & Lipid' },
+    { id: 'Cardiology', label: 'Cardiac & Lipid' },
+    { id: 'Diabetes & Metabolic', label: 'Diabetes & Metabolic' },
     { id: 'Endocrinology', label: 'Thyroid & Diabetes' },
-    { id: 'Hematology', label: 'Hematology & CBC' },
-    { id: 'Immunology', label: 'Vitamins & Immunity' },
+    { id: 'General Hematology', label: 'Hematology & CBC' },
+    { id: 'Radiology & Imaging', label: 'Radiology & Imaging' },
   ];
 
   return (
@@ -110,7 +115,7 @@ export const DiagnosticListPage: React.FC = () => {
                   <span className="text-[11px] font-bold text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2 py-0.5 rounded uppercase transition-colors">
                     {test.category}
                   </span>
-                  {test.homeCollectionAvailable && (
+                  {test.isHomeCollectionAvailable && (
                     <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded transition-colors">
                       <Home className="w-3 h-3" /> Home Collection
                     </span>
@@ -164,7 +169,10 @@ export const DiagnosticListPage: React.FC = () => {
                   size="sm"
                   onClick={() => {
                     setSelectedTest(test);
-                    setIsHomeCollection(test.homeCollectionAvailable);
+                    setIsHomeCollection(test.isHomeCollectionAvailable);
+                    setBookingDate(dateAfterDays(1));
+                    setBookingError(null);
+                    bookTestMutation.reset();
                   }}
                 >
                   Book Test
@@ -194,11 +202,12 @@ export const DiagnosticListPage: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
+              {(bookingError || bookTestMutation.isError) && <p role="alert" className="text-sm text-rose-700">{bookingError || errorMessage(bookTestMutation.error)}</p>}
               <Input
-                label="Sample Collection Date"
+                label="Sample Collection Date (9:00 AM)"
                 type="date"
                 value={bookingDate}
-                min={new Date().toISOString().split('T')[0]}
+                min={localDate()}
                 onChange={(e) => setBookingDate(e.target.value)}
                 required
               />
@@ -210,6 +219,7 @@ export const DiagnosticListPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
+                    disabled={!selectedTest.isHomeCollectionAvailable || bookTestMutation.isPending}
                     onClick={() => setIsHomeCollection(true)}
                     className={`p-3 rounded-xl border text-xs font-bold text-left transition-all ${
                       isHomeCollection
@@ -258,12 +268,11 @@ export const DiagnosticListPage: React.FC = () => {
                 <Button
                   variant="primary"
                   isLoading={bookTestMutation.isPending}
-                  onClick={() =>
-                    bookTestMutation.mutate({
-                      testId: selectedTest.id,
-                      date: bookingDate,
-                      isHomeCollection,
-                    })
+                  onClick={() => {
+                    const invalid = validateBooking(bookingDate, '09:00 AM');
+                    setBookingError(invalid);
+                    if (invalid || bookTestMutation.isPending) return;
+                    bookTestMutation.mutate({ testId: selectedTest.id, date: bookingDate, isHomeCollection });
                   }
                 >
                   Confirm Test Booking

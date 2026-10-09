@@ -1,23 +1,27 @@
 import { apiClient, executeWithFallback } from './axios';
-import { User, ApiResponse } from '../types';
-import { mockCurrentUser } from '../data/mockData';
-import { auth } from '../firebase/config';
+import type { User, ApiResponse } from '../types';
+import { demoUser, getDemoSession, saveDemoProfile } from '../lib/demo';
 
 export const userApi = {
-  getCurrentUser: async (): Promise<ApiResponse<User>> => {
-    return executeWithFallback(
-      () => apiClient.get<ApiResponse<User>>('/api/v1/users/me'),
-      () => {
-        // Return mock user but try to use Firebase auth details if available
-        const fbUser = auth.currentUser;
-        return {
-          ...mockCurrentUser,
-          email: fbUser?.email || mockCurrentUser.email,
-          fullName: fbUser?.displayName || mockCurrentUser.fullName,
-        };
-      },
-      'User profile retrieved successfully'
-    );
-  }
-};
+  getCurrentUser: async (): Promise<ApiResponse<User>> => executeWithFallback(
+    () => apiClient.get<ApiResponse<User>>('/api/v1/users/me'),
+    () => {
+      const session = getDemoSession();
+      if (!session) throw new Error('Sign in to the demo to view your profile.');
+      return demoUser(session.email);
+    },
+    'User profile retrieved'
+  ),
 
+  updateCurrentUser: async (updates: Partial<User>): Promise<ApiResponse<User>> => executeWithFallback(
+    () => apiClient.patch<ApiResponse<User>>('/api/v1/users/me', updates),
+    () => {
+      const session = getDemoSession();
+      if (!session) throw new Error('Sign in to the demo to update your profile.');
+      const user = { ...demoUser(session.email), ...updates, id: session.id, email: session.email, role: session.role };
+      saveDemoProfile(user);
+      return user;
+    },
+    'Profile updated'
+  ),
+};

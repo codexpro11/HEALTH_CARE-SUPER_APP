@@ -16,35 +16,49 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Select } from '../../components/common/Select';
+import { isDemoMode } from '../../lib/demo';
+import { localDate } from '../../lib/frontend';
 
 export const ProfilePage: React.FC = () => {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, error, clearError } = useAuth();
 
-  const [fullName, setFullName] = useState(user?.fullName || 'Sarah Jenkins');
-  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '+1 (555) 342-8819');
+  const [fullName, setFullName] = useState(user?.fullName || '');
+  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
   const [bloodGroup, setBloodGroup] = useState(user?.bloodGroup || 'O+');
-  const [dateOfBirth, setDateOfBirth] = useState(user?.dateOfBirth || '1992-04-18');
-  const [allergies, setAllergies] = useState(user?.allergies?.join(', ') || 'Penicillin, Shellfish');
+  const [dateOfBirth, setDateOfBirth] = useState(user?.dateOfBirth || '');
+  const [allergies, setAllergies] = useState(user?.allergies?.join(', ') || '');
   const [chronicConditions, setChronicConditions] = useState(
-    user?.chronicConditions?.join(', ') || 'Mild Asthma'
+    user?.chronicConditions?.join(', ') || ''
   );
 
   // Emergency Contact
-  const [emergencyName, setEmergencyName] = useState(user?.emergencyContact?.name || 'David Jenkins');
+  const [emergencyName, setEmergencyName] = useState(user?.emergencyContact?.name || '');
   const [emergencyPhone, setEmergencyPhone] = useState(
-    user?.emergencyContact?.phone || '+1 (555) 901-4432'
+    user?.emergencyContact?.phone || ''
   );
   const [emergencyRelation, setEmergencyRelation] = useState(
-    user?.emergencyContact?.relationship || 'Spouse'
+    user?.emergencyContact?.relationship || ''
   );
 
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const [isSaving, setIsSaving] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateUser({
-      fullName,
-      phoneNumber,
+    clearError();
+    setSavedSuccess(false);
+    const invalid = !fullName.trim() ? 'Enter your full name.'
+      : !dateOfBirth || dateOfBirth > localDate() ? 'Enter a valid date of birth.'
+      : phoneNumber.replace(/\D/g, '').length < 7 || emergencyPhone.replace(/\D/g, '').length < 7 ? 'Enter valid phone numbers.'
+      : !emergencyName.trim() || !emergencyRelation.trim() ? 'Complete your emergency contact.' : null;
+    setValidationError(invalid);
+    if (invalid) return;
+    setIsSaving(true);
+    const success = await updateUser({
+      fullName: fullName.trim(),
+      phoneNumber: phoneNumber.trim(),
       bloodGroup,
       dateOfBirth,
       allergies: allergies.split(',').map((s) => s.trim()).filter(Boolean),
@@ -55,6 +69,8 @@ export const ProfilePage: React.FC = () => {
         relationship: emergencyRelation,
       },
     });
+    setIsSaving(false);
+    if (!success) return;
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2000);
   };
@@ -71,10 +87,11 @@ export const ProfilePage: React.FC = () => {
         </p>
       </div>
 
+      {(validationError || error) && <p role="alert" className="text-sm text-rose-700">{validationError || error}</p>}
       {savedSuccess && (
         <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-2.5 text-xs text-emerald-800 font-semibold">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-          <span>Profile changes successfully synchronized with your clinical record.</span>
+          <span>{isDemoMode ? 'Demo profile saved in this browser.' : 'Profile changes saved.'}</span>
         </div>
       )}
 
@@ -108,6 +125,7 @@ export const ProfilePage: React.FC = () => {
             <Input
               label="Date of Birth"
               type="date"
+              max={localDate()}
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
               required
@@ -215,6 +233,7 @@ export const ProfilePage: React.FC = () => {
           <Button
             type="submit"
             variant="primary"
+            isLoading={isSaving}
             leftIcon={<Save className="w-4 h-4" />}
           >
             Save Profile Changes

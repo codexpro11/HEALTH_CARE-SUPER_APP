@@ -11,6 +11,8 @@ import {
   ShieldCheck,
   ArrowRight,
 } from 'lucide-react';
+import { validateCheckout } from '../../lib/frontend';
+import { errorMessage } from '../../lib/request';
 import { pharmacyApi } from '../../api/pharmacyApi';
 import { PharmacyOrder } from '../../types';
 import { OrderCard } from '../../components/pharmacy/OrderCard';
@@ -27,6 +29,7 @@ export const OrderHistoryPage: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<PharmacyOrder | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   // Checkout Form State
   const [deliveryAddress, setDeliveryAddress] = useState('742 Evergreen Terrace, Metro City, 90210');
@@ -53,6 +56,7 @@ export const OrderHistoryPage: React.FC = () => {
       pharmacyApi.createOrder(newOrder),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pharmacy-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'orders'] });
       clearCart();
       setCheckoutSuccess(true);
       setTimeout(() => {
@@ -65,6 +69,10 @@ export const OrderHistoryPage: React.FC = () => {
 
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
+    if (createOrderMutation.isPending) return;
+    const invalid = validateCheckout(items, deliveryAddress);
+    setCheckoutError(invalid);
+    if (invalid) return;
     createOrderMutation.mutate({
       items,
       deliveryAddress,
@@ -175,13 +183,14 @@ export const OrderHistoryPage: React.FC = () => {
           {checkoutSuccess ? (
             <div className="py-8 text-center space-y-3">
               <CheckCircle2 className="w-12 h-12 text-emerald-600 dark:text-emerald-500 mx-auto animate-bounce transition-colors" />
-              <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 transition-colors">Order Dispatched!</h4>
+              <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 transition-colors">Order Submitted!</h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xs mx-auto transition-colors">
                 Your pharmacy order has been submitted. Pharmacy staff is preparing your shipment for express courier pickup.
               </p>
             </div>
           ) : (
             <form onSubmit={handlePlaceOrder} className="space-y-4">
+              {(checkoutError || createOrderMutation.isError) && <p role="alert" className="text-sm text-rose-700">{checkoutError || errorMessage(createOrderMutation.error)}</p>
               {/* Order Items summary */}
               <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl space-y-1.5 text-xs max-h-40 overflow-y-auto transition-colors">
                 {items.map((i) => (
@@ -218,7 +227,7 @@ export const OrderHistoryPage: React.FC = () => {
                         : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
-                    Insurance (Co-pay $0)
+                    Insurance
                   </button>
                   <button
                     type="button"
@@ -273,6 +282,7 @@ export const OrderHistoryPage: React.FC = () => {
                 <Button
                   variant="primary"
                   type="submit"
+                  disabled={!items.length}
                   isLoading={createOrderMutation.isPending}
                 >
                   Confirm & Place Order

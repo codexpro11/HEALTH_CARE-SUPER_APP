@@ -14,45 +14,25 @@ interface CartState {
 }
 
 export const useCartStore = create<CartState>((set, get) => ({
-  items: [
-    // Preload one item so user can immediately see the checkout & cart experience
-    {
-      medicine: {
-        id: 'med-store-01',
-        name: 'Atorvastatin 10mg Tablets',
-        genericName: 'Atorvastatin Calcium',
-        manufacturer: 'Pfizer Labs',
-        category: 'CARDIOLOGY',
-        price: 24.5,
-        discountPrice: 18.0,
-        dosageForm: 'Tablet',
-        strength: '10mg (30 Tablets)',
-        inStock: true,
-        stockCount: 140,
-        requiresPrescription: true,
-        description: 'HMG-CoA reductase inhibitor for reducing LDL cholesterol.',
-        imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&auto=format&fit=crop&q=80',
-      },
-      quantity: 1,
-    },
-  ],
+  items: [],
   isDrawerOpen: false,
 
   addItem: (medicine, quantity = 1) => {
+    if (!medicine.inStock || !Number.isInteger(quantity) || quantity < 1) return;
     set((state) => {
       const existing = state.items.find((item) => item.medicine.id === medicine.id);
       if (existing) {
         return {
           items: state.items.map((item) =>
             item.medicine.id === medicine.id
-              ? { ...item, quantity: item.quantity + quantity }
+              ? { ...item, quantity: Math.min(item.medicine.stockCount, item.quantity + quantity) }
               : item
           ),
           isDrawerOpen: true,
         };
       }
       return {
-        items: [...state.items, { medicine, quantity }],
+        items: [...state.items, { medicine, quantity: Math.min(quantity, medicine.stockCount) }],
         isDrawerOpen: true,
       };
     });
@@ -65,13 +45,14 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   updateQuantity: (medicineId, quantity) => {
+    if (!Number.isInteger(quantity)) return;
     if (quantity <= 0) {
       get().removeItem(medicineId);
       return;
     }
     set((state) => ({
       items: state.items.map((item) =>
-        item.medicine.id === medicineId ? { ...item, quantity } : item
+        item.medicine.id === medicineId ? { ...item, quantity: Math.min(quantity, item.medicine.stockCount) } : item
       ),
     }));
   },

@@ -13,7 +13,9 @@ import {
 } from 'lucide-react';
 import { doctorApi } from '../../api/doctorApi';
 import { appointmentApi } from '../../api/appointmentApi';
-import { Doctor } from '../../types';
+import { availableTimes, localDate, dateAfterDays, validateBooking } from '../../lib/frontend';
+import { errorMessage } from '../../lib/request';
+import { Doctor, ConsultationType } from '../../types';
 import { DoctorCard } from '../../components/doctors/DoctorCard';
 import { SearchBar } from '../../components/common/SearchBar';
 import { Select } from '../../components/common/Select';
@@ -32,11 +34,12 @@ export const DoctorListPage: React.FC = () => {
 
   // Booking Modal State
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  const [bookingDate, setBookingDate] = useState('2026-09-12');
+  const [bookingDate, setBookingDate] = useState(() => dateAfterDays(1));
   const [bookingSlot, setBookingSlot] = useState('');
   const [bookingType, setBookingType] = useState<'VIDEO' | 'IN_PERSON'>('VIDEO');
   const [bookingReason, setBookingReason] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -47,11 +50,11 @@ export const DoctorListPage: React.FC = () => {
       doctorApi.getDoctors({
         search,
         specialization: specialization === 'ALL' ? undefined : specialization,
-        consultationType: consultationType === 'ALL' ? undefined : consultationType,
+        consultationType: consultationType === 'ALL' ? undefined : consultationType as ConsultationType,
       }),
   });
 
-  const doctors = (response?.data || []).sort((a, b) => {
+  const doctors = [...(response?.data || [])].sort((a, b) => {
     if (sortBy === 'rating') return b.rating - a.rating;
     if (sortBy === 'experience') return b.experienceYears - a.experienceYears;
     if (sortBy === 'fee') return a.consultationFee - b.consultationFee;
@@ -79,14 +82,21 @@ export const DoctorListPage: React.FC = () => {
 
   const handleOpenBooking = (doctor: Doctor) => {
     setSelectedDoctor(doctor);
-    setBookingSlot(doctor.availableSlots?.[0] || doctor.timeSlots?.[0]?.time || '10:00 AM');
+    const date = doctor.timeSlots.find(slot => slot.available && !validateBooking(slot.date, slot.time))?.date ?? dateAfterDays(1);
+    setBookingDate(date);
+    setBookingSlot(availableTimes(doctor, date)[0] ?? '');
+    setBookingError(null);
+    bookMutation.reset();
     setBookingType(doctor.consultationTypes.includes('VIDEO') ? 'VIDEO' : 'IN_PERSON');
     setBookingReason('');
     setBookingSuccess(false);
   };
 
   const handleConfirmBooking = () => {
-    if (!selectedDoctor || !bookingSlot) return;
+    if (!selectedDoctor || bookMutation.isPending) return;
+    const invalid = validateBooking(bookingDate, bookingSlot);
+    setBookingError(invalid);
+    if (invalid) return;
     bookMutation.mutate({
       doctorId: selectedDoctor.id,
       appointmentDate: bookingDate,
@@ -219,6 +229,8 @@ export const DoctorListPage: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
+              {(bookingError || bookMutation.isError) && <p role="alert" className="text-sm text-rose-700">{bookingError || errorMessage(bookMutation.error)}</p>}
+              {availableTimes(selectedDoctor, bookingDate).length === 0 && <p role="status" className="text-sm text-amber-700">No available slots on this date. Choose another day.</p>}
               {/* Consultation Format Selector */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 transition-colors">
@@ -227,6 +239,7 @@ export const DoctorListPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
+                    disabled={!selectedDoctor.consultationTypes.includes('VIDEO') || bookMutation.isPending}
                     onClick={() => setBookingType('VIDEO')}
                     className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-semibold transition-all ${
                       bookingType === 'VIDEO'
@@ -240,6 +253,7 @@ export const DoctorListPage: React.FC = () => {
 
                   <button
                     type="button"
+                    disabled={!selectedDoctor.consultationTypes.includes('IN_PERSON') || bookMutation.isPending}
                     onClick={() => setBookingType('IN_PERSON')}
                     className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-semibold transition-all ${
                       bookingType === 'IN_PERSON'
@@ -259,8 +273,13 @@ export const DoctorListPage: React.FC = () => {
                   label="Select Date"
                   type="date"
                   value={bookingDate}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setBookingDate(e.target.value)}
+                  min={localDate()}
+                  onChange={(e) => {
+                    setBookingDate(e.target.value);
+                    setBookingSlot(availableTimes(selectedDoctor, e.target.value)[0] ?? '');
+                    setBookingError(null);
+                    bookMutation.reset();
+                  }}
                   required
                 />
 
@@ -268,10 +287,10 @@ export const DoctorListPage: React.FC = () => {
                   label="Available Time Slot"
                   value={bookingSlot}
                   onChange={(e) => setBookingSlot(e.target.value)}
-                  options={selectedDoctor.availableSlots.map((slot) => ({
+                  options={[{ value: '', label: 'Choose a time slot' }, ...availableTimes(selectedDoctor, bookingDate).map((slot) => ({
                     value: slot,
                     label: slot,
-                  }))}
+                  }))]}
                 />
               </div>
 
@@ -304,6 +323,7 @@ export const DoctorListPage: React.FC = () => {
                 <Button
                   variant="primary"
                   isLoading={bookMutation.isPending}
+                  disabled={!bookingSlot}
                   onClick={handleConfirmBooking}
                 >
                   Confirm & Schedule

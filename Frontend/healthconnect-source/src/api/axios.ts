@@ -1,6 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ApiResponse, ApiErrorResponse } from '../types';
-import { auth } from '../firebase/config';
+import { getFirebaseAuth } from '../firebase/config';
+import { isDemoMode, getDemoScenario } from '../lib/demo';
+import { executeRequest } from '../lib/request';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -16,7 +18,8 @@ export const apiClient = axios.create({
 // Request interceptor for Bearer token injection
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    // Attempt to get the Firebase ID Token
+    if (isDemoMode) return config;
+    const auth = getFirebaseAuth();
     if (auth.currentUser) {
       try {
         const token = await auth.currentUser.getIdToken();
@@ -38,7 +41,8 @@ apiClient.interceptors.response.use(
   async (error: AxiosError<ApiErrorResponse>) => {
     // Firebase Web SDK automatically handles ID token refresh. 
     // If we receive a 401, the user is generally unauthenticated or the session has expired entirely.
-    if (error.response?.status === 401) {
+    if (!isDemoMode && error.response?.status === 401) {
+      const auth = getFirebaseAuth();
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
         auth.signOut().then(() => {
           window.location.href = '/login?session_expired=true';
@@ -49,28 +53,13 @@ apiClient.interceptors.response.use(
   }
 );
 
-/**
- * Executes a REST API call.
- * If backend is reachable, returns real data.
- * If backend fails due to network/unavailable server (Spring Boot not started),
- * returns realistic fallback data with identical ApiResponse contract.
- */
+/** Use mock data only when explicitly running the frontend demo. */
 export async function executeWithFallback<T>(
   apiCall: () => Promise<{ data: ApiResponse<T> }>,
   fallbackGenerator: () => T | Promise<T>,
   fallbackMessage = 'Request processed successfully'
 ): Promise<ApiResponse<T>> {
-  try {
-    const response = await apiCall();
-    return response.data;
-  } catch {
-    // Graceful fallback for mock preview when Spring Boot backend is not running locally
-    const fallbackData = await fallbackGenerator();
-    return {
-      success: true,
-      data: fallbackData,
-      message: fallbackMessage,
-      timestamp: new Date().toISOString(),
-    };
-  }
+  return executeRequest(apiCall, fallbackGenerator, {
+    demo: isDemoMode, scenario: getDemoScenario(), message: fallbackMessage,
+  });
 }
