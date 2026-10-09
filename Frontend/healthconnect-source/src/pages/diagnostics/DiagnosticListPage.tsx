@@ -273,7 +273,7 @@ export const DiagnosticListPage: React.FC = () => {
                     setBookingError(invalid);
                     if (invalid || bookTestMutation.isPending) return;
                     bookTestMutation.mutate({ testId: selectedTest.id, date: bookingDate, isHomeCollection });
-                  }
+                  }}
                 >
                   Confirm Test Booking
                 </Button>

@@ -190,7 +190,7 @@ export const OrderHistoryPage: React.FC = () => {
             </div>
           ) : (
             <form onSubmit={handlePlaceOrder} className="space-y-4">
-              {(checkoutError || createOrderMutation.isError) && <p role="alert" className="text-sm text-rose-700">{checkoutError || errorMessage(createOrderMutation.error)}</p>
+              {(checkoutError || createOrderMutation.isError) && <p role="alert" className="text-sm text-rose-700">{checkoutError || errorMessage(createOrderMutation.error)}</p>}
               {/* Order Items summary */}
               <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl space-y-1.5 text-xs max-h-40 overflow-y-auto transition-colors">
                 {items.map((i) => (

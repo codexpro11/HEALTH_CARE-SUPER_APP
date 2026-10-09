@@ -199,7 +199,7 @@ export const AppointmentListPage: React.FC = () => {
                   setValidationError(invalid);
                   if (invalid || rescheduleMutation.isPending) return;
                   rescheduleMutation.mutate({ id: rescheduleApt.id, date: newDate, time: newTime });
-                }
+                }}
               >
                 Confirm Reschedule
               </Button>
