@@ -1,4 +1,5 @@
-import { demoStorageKey } from '../lib/demo';
+import { demoStorageKey, isDemoMode, writeStored } from '../lib/demo';
+import { readDemoRecordAttachment, saveDemoRecordAttachment } from '../lib/recordAttachments';
 import { apiClient, executeWithFallback } from './axios';
 import { ApiResponse, MedicalRecord, Prescription, ProviderConsent, RecordType } from '../types';
 import { mockMedicalRecords, mockPrescriptions, mockProviderConsents } from '../data/mockData';
@@ -103,35 +104,57 @@ export const medicalRecordApi = {
     );
   },
 
-  uploadRecord: async (record: Partial<MedicalRecord>): Promise<ApiResponse<MedicalRecord>> => {
+  uploadRecord: async (record: Partial<MedicalRecord>, file?: File): Promise<ApiResponse<MedicalRecord>> => {
     return executeWithFallback(
-      () => apiClient.post('/api/v1/medical-records', record),
       () => {
+        if (!file) return apiClient.post('/api/v1/medical-records', record);
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(record)], { type: 'application/json' }), 'record.json');
+        form.append('file', file, file.name);
+        return apiClient.post('/api/v1/medical-records', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      },
+      async () => {
+        const id = 'rec-' + Date.now();
         const newRecord: MedicalRecord = {
-          id: `rec-${Date.now()}`,
-          patientId: 'usr-patient-001',
+          id,
+          patientId: 'demo-patient',
           title: record.title || 'Medical Record Document',
           recordType: record.recordType || 'LAB_REPORT',
-          doctorName: record.doctorName || 'Dr. Sarah Jenkins',
-          provider: record.provider || 'Metro Health Diagnostics',
-          date: record.date || new Date().toISOString().split('T')[0],
-          summary: record.summary || 'Uploaded health document',
-          status: 'VERIFIED',
-          fileSize: record.fileSize || '1.2 MB',
-          fileType: record.fileType || 'PDF',
-          tags: record.tags || ['general'],
+          doctorName: record.doctorName || 'Not provided',
+          provider: record.provider || 'Not provided',
+          date: record.date || new Date().toISOString().slice(0, 10),
+          summary: record.summary || 'Patient-uploaded health record document.',
+          status: 'PENDING',
+          fileSize: file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : record.fileSize,
+          fileType: file?.type || record.fileType,
+          fileMimeType: file?.type || record.fileMimeType,
+          originalFileName: file?.name || record.originalFileName,
+          tags: record.tags || ['patient-upload'],
           confidentialityLevel: record.confidentialityLevel || 'STANDARD',
         };
         const records = getStoredRecords();
-        const updated = [newRecord, ...records];
-        try {
-          localStorage.setItem(demoStorageKey(RECORDS_STORAGE_KEY), JSON.stringify(updated));
-        } catch {
-          // ignore
-        }
+        if (file) await saveDemoRecordAttachment(demoStorageKey('hc_record_file:' + id), file);
+        writeStored(demoStorageKey(RECORDS_STORAGE_KEY), [newRecord, ...records]);
         return newRecord;
       },
       'Medical record uploaded successfully'
     );
+  },
+
+  getAttachment: async (record: MedicalRecord): Promise<Blob> => {
+    if (isDemoMode) {
+      const attachment = await readDemoRecordAttachment(demoStorageKey('hc_record_file:' + record.id));
+      if (!attachment) throw new Error('No saved file is available for this record.');
+      return attachment;
+    }
+    if (!record.fileUrl && !record.originalFileName) {
+      throw new Error('This record does not have an attached file.');
+    }
+    const response = await apiClient.get(record.fileUrl || `/api/v1/medical-records/${encodeURIComponent(record.id)}/file`, {
+      responseType: 'blob',
+    });
+    return response.data as Blob;
   },
 };

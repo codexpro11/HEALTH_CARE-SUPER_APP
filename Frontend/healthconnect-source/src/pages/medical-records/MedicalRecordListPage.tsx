@@ -1,130 +1,184 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  FileText,
-  Upload,
-  Plus,
-  Filter,
-  Download,
-  Eye,
-  Lock,
-  Calendar,
-  UserCheck,
-  CheckCircle2,
-  Paperclip,
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Download, FileText, Paperclip, Upload } from 'lucide-react';
 import { medicalRecordApi } from '../../api/medicalRecordApi';
-import { MedicalRecord, MedicalRecordType } from '../../types';
-import { MedicalRecordCard } from '../../components/medical-records/MedicalRecordCard';
-import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
-import { Input } from '../../components/common/Input';
-import { Select } from '../../components/common/Select';
-import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ErrorState } from '../../components/common/ErrorState';
+import { Input } from '../../components/common/Input';
+import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
+import { MedicalRecordCard } from '../../components/medical-records/MedicalRecordCard';
+import { Modal } from '../../components/common/Modal';
+import { Select } from '../../components/common/Select';
+import { localDate } from '../../lib/frontend';
+import { validateRecordAttachment } from '../../lib/recordAttachments';
+import { MedicalRecord, MedicalRecordType } from '../../types';
+
+const hasAttachment = (record: MedicalRecord) => Boolean(record.fileUrl || record.originalFileName);
 
 export const MedicalRecordListPage: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string>('ALL');
   const [viewRecord, setViewRecord] = useState<MedicalRecord | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-
-  // Upload Form State
   const [title, setTitle] = useState('');
   const [recordType, setRecordType] = useState<MedicalRecordType>('LAB_REPORT');
-  const [doctorName, setDoctorName] = useState('Dr. Sarah Jenkins');
-  const [provider, setProvider] = useState('Metro Health Diagnostic Center');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [doctorName, setDoctorName] = useState('');
+  const [provider, setProvider] = useState('');
+  const [date, setDate] = useState(localDate());
   const [summary, setSummary] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [attachmentError, setAttachmentError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [previewError, setPreviewError] = useState('');
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const queryClient = useQueryClient();
-
   const { data: response, isLoading, isError, refetch } = useQuery({
     queryKey: ['medical-records', selectedType],
-    queryFn: () => medicalRecordApi.getRecords(selectedType === 'ALL' ? undefined : selectedType),
+    queryFn: () => medicalRecordApi.getRecords(selectedType === 'ALL' ? undefined : selectedType as MedicalRecordType),
   });
-
   const records = response?.data || [];
 
   const uploadMutation = useMutation({
-    mutationFn: (newRecord: Partial<MedicalRecord>) => medicalRecordApi.uploadRecord(newRecord),
+    mutationFn: ({ record, file }: { record: Partial<MedicalRecord>; file: File }) =>
+      medicalRecordApi.uploadRecord(record, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medical-records'] });
       setIsUploadOpen(false);
       setTitle('');
       setSummary('');
       setSelectedFile(null);
+      setAttachmentError('');
+      setDate(localDate());
     },
+    onError: (error: Error) => setActionError(error.message || 'The record could not be uploaded.'),
   });
 
-  const handleUploadSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title) return;
+  useEffect(() => {
+    let active = true;
+    let objectUrl = '';
+    setPreviewUrl('');
+    setPreviewError('');
+    if (!viewRecord || !hasAttachment(viewRecord)) {
+      setIsPreviewLoading(false);
+      return;
+    }
+    setIsPreviewLoading(true);
+    medicalRecordApi.getAttachment(viewRecord)
+      .then((blob) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        setPreviewUrl(objectUrl);
+      })
+      .catch((error: Error) => {
+        if (active) setPreviewError(error.message || 'The attached file could not be opened.');
+      })
+      .finally(() => {
+        if (active) setIsPreviewLoading(false);
+      });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [viewRecord]);
 
+  const handleUploadSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const fileError = validateRecordAttachment(selectedFile);
+    setAttachmentError(fileError || '');
+    if (fileError || !selectedFile) return;
+    if (!title.trim()) {
+      setActionError('Add a title for this record.');
+      return;
+    }
+    setActionError('');
     uploadMutation.mutate({
-      title,
-      recordType,
-      date,
-      doctorName,
-      provider,
-      summary: summary || 'Patient-uploaded health record document.',
-      fileSize: selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : '1.2 MB',
-      fileType: 'PDF',
-      confidentialityLevel: 'STANDARD',
-      tags: [recordType.toLowerCase(), 'patient-upload'],
+      file: selectedFile,
+      record: {
+        title: title.trim(),
+        recordType,
+        date,
+        doctorName: doctorName.trim() || 'Not provided',
+        provider: provider.trim() || 'Not provided',
+        summary: summary.trim() || 'Patient-uploaded health record document.',
+        fileSize: (selectedFile.size / 1024 / 1024).toFixed(2) + ' MB',
+        fileType: selectedFile.type,
+        fileMimeType: selectedFile.type,
+        originalFileName: selectedFile.name,
+        confidentialityLevel: 'STANDARD',
+        tags: [recordType.toLowerCase(), 'patient-upload'],
+      },
     });
   };
 
+  const handleDownload = async (record: MedicalRecord) => {
+    try {
+      setActionError('');
+      const blob = await medicalRecordApi.getAttachment(record);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = record.originalFileName || record.title;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      setActionError((error as Error).message || 'The attached file could not be downloaded.');
+    }
+  };
+
   const categories = [
-    { id: 'ALL', label: 'All Documents' },
+    { id: 'ALL', label: 'All Records' },
     { id: 'LAB_REPORT', label: 'Lab Reports' },
     { id: 'RADIOLOGY', label: 'Radiology / Scans' },
     { id: 'PRESCRIPTION', label: 'Prescriptions' },
     { id: 'DISCHARGE_SUMMARY', label: 'Discharge Summaries' },
     { id: 'VACCINATION', label: 'Vaccinations' },
+    { id: 'DIAGNOSTIC_REPORT', label: 'Diagnostic Reports' },
   ];
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            Electronic Health Records (EHR)
-          </h1>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Medical Records</h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            HIPAA-compliant decentralized repository for clinical laboratory reports, scans, and notes.
+            Keep reports, prescriptions, scans, and other patient documents together.
           </p>
         </div>
-
-        <Button
-          variant="primary"
-          leftIcon={<Upload className="w-4 h-4" />}
-          onClick={() => setIsUploadOpen(true)}
-        >
-          Upload Document
+        <Button variant="primary" leftIcon={<Upload className="w-4 h-4" />} onClick={() => {
+          setActionError('');
+          setIsUploadOpen(true);
+        }}>
+          Add a record
         </Button>
       </div>
 
-      {/* Category Pills */}
+      {actionError && (
+        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          {actionError}
+        </div>
+      )}
+
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-        {categories.map((cat) => (
+        {categories.map((category) => (
           <button
-            key={cat.id}
-            onClick={() => setSelectedType(cat.id)}
+            key={category.id}
+            type="button"
+            onClick={() => setSelectedType(category.id)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold shrink-0 transition-colors ${
-              selectedType === cat.id
+              selectedType === category.id
                 ? 'bg-teal-600 text-white shadow-xs'
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
-            {cat.label}
+            {category.label}
           </button>
         ))}
       </div>
 
-      {/* Records List */}
       {isLoading ? (
         <LoadingSkeleton type="list" count={4} />
       ) : isError ? (
@@ -133,8 +187,8 @@ export const MedicalRecordListPage: React.FC = () => {
         <EmptyState
           icon={FileText}
           title="No Records in Category"
-          description="There are no electronic records found matching this category."
-          actionLabel="Upload New Record"
+          description="Add a record with a PDF or image attachment to keep it in this list."
+          actionLabel="Add a record"
           onAction={() => setIsUploadOpen(true)}
         />
       ) : (
@@ -143,166 +197,141 @@ export const MedicalRecordListPage: React.FC = () => {
             <MedicalRecordCard
               key={record.id}
               record={record}
-              onView={(r) => setViewRecord(r)}
-              onDownload={(r) => alert(`Downloading ${r.title} securely...`)}
+              onView={setViewRecord}
+              onDownload={handleDownload}
             />
           ))}
         </div>
       )}
 
-      {/* View Record Document Modal */}
       {viewRecord && (
         <Modal
-          isOpen={!!viewRecord}
+          isOpen
           onClose={() => setViewRecord(null)}
           title={viewRecord.title}
-          subtitle={`Issued on ${viewRecord.date} by ${viewRecord.doctorName}`}
-          maxWidth="lg"
+          subtitle={`Dated ${viewRecord.date} • ${viewRecord.provider || 'Provider not specified'}`}
+          maxWidth="xl"
         >
           <div className="space-y-4">
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="font-semibold text-slate-600">Document Type:</span>
-                <span className="font-bold text-slate-900">{viewRecord.recordType}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold text-slate-600">Issuing Clinic / Hospital:</span>
-                <span className="font-bold text-slate-900">{viewRecord.provider}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold text-slate-600">Verification Status:</span>
-                <span className="font-bold text-emerald-700">{viewRecord.status} (Verified Signoff)</span>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
+              <div><span className="text-slate-500">Category: </span><strong>{viewRecord.recordType.replace(/_/g, ' ')}</strong></div>
+              <div><span className="text-slate-500">Clinician: </span><strong>{viewRecord.doctorName || 'Not specified'}</strong></div>
+              <div><span className="text-slate-500">Status: </span><strong>{viewRecord.status}</strong></div>
+              <div><span className="text-slate-500">File: </span><strong>{viewRecord.originalFileName || 'No attachment'}</strong></div>
             </div>
 
-            <div className="space-y-1">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Clinical Summary / Findings
-              </h4>
-              <p className="text-xs sm:text-sm text-slate-700 p-4 bg-white border border-slate-200 rounded-xl leading-relaxed whitespace-pre-line">
-                {viewRecord.summary}
+            <section>
+              <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">Notes and findings</h2>
+              <p className="whitespace-pre-line rounded-xl border border-slate-200 bg-white p-4 text-sm leading-relaxed text-slate-700">
+                {viewRecord.summary || 'No notes were added.'}
               </p>
-            </div>
+            </section>
 
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-              <span className="text-xs text-slate-400">Security: SHA-256 Checksum Verified</span>
+            {hasAttachment(viewRecord) && (
+              <section aria-label="Document preview" className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                {isPreviewLoading && <div className="p-8 text-center text-sm text-slate-500">Loading document preview…</div>}
+                {previewError && <div role="alert" className="p-4 text-sm text-rose-700">{previewError}</div>}
+                {previewUrl && viewRecord.fileMimeType?.startsWith('image/') && (
+                  <img src={previewUrl} alt={viewRecord.title} className="mx-auto max-h-[60vh] max-w-full object-contain" />
+                )}
+                {previewUrl && viewRecord.fileMimeType === 'application/pdf' && (
+                  <iframe title={viewRecord.title} src={previewUrl} className="h-[60vh] w-full" />
+                )}
+                {previewUrl && !['application/pdf', 'image/jpeg', 'image/png'].includes(viewRecord.fileMimeType || '') && (
+                  <div className="p-4 text-sm text-slate-600">Preview is unavailable for this file type. Download the file to open it.</div>
+                )}
+              </section>
+            )}
+
+            <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+              <span className="text-xs text-slate-500">
+                {hasAttachment(viewRecord) ? 'Attachment available' : 'No document is attached to this record.'}
+              </span>
               <Button
                 variant="primary"
                 size="sm"
                 leftIcon={<Download className="w-3.5 h-3.5" />}
-                onClick={() => alert(`Downloading document: ${viewRecord.title}`)}
+                disabled={!hasAttachment(viewRecord)}
+                onClick={() => handleDownload(viewRecord)}
               >
-                Download PDF
+                Download file
               </Button>
             </div>
           </div>
         </Modal>
       )}
 
-      {/* Upload Document Modal */}
       {isUploadOpen && (
         <Modal
-          isOpen={isUploadOpen}
+          isOpen
           onClose={() => setIsUploadOpen(false)}
-          title="Upload Medical Record"
-          subtitle="Add external test results, radiology reports, or discharge summaries"
+          title="Add a medical record"
+          subtitle="Attach a PDF or image of a report, prescription, scan, or vaccination record."
           maxWidth="md"
         >
           <form onSubmit={handleUploadSubmit} className="space-y-4">
             <Input
-              label="Document Title"
-              placeholder="e.g. Annual Blood Work Lipid Panel"
+              label="Document title"
+              placeholder="e.g. Complete blood count report"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(event) => setTitle(event.target.value)}
               required
             />
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Select
-                label="Record Category"
+                label="Record category"
                 value={recordType}
-                onChange={(e) => setRecordType(e.target.value as MedicalRecordType)}
+                onChange={(event) => setRecordType(event.target.value as MedicalRecordType)}
                 options={[
-                  { value: 'LAB_REPORT', label: 'Lab Report' },
-                  { value: 'RADIOLOGY', label: 'Radiology / Scan' },
-                  { value: 'DISCHARGE_SUMMARY', label: 'Discharge Summary' },
+                  { value: 'LAB_REPORT', label: 'Lab report' },
+                  { value: 'DIAGNOSTIC_REPORT', label: 'Diagnostic report' },
+                  { value: 'RADIOLOGY', label: 'Radiology or scan' },
                   { value: 'PRESCRIPTION', label: 'Prescription' },
+                  { value: 'DISCHARGE_SUMMARY', label: 'Discharge summary' },
                   { value: 'VACCINATION', label: 'Vaccination' },
-                  { value: 'CLINICAL_NOTE', label: 'Clinical Note' },
+                  { value: 'CLINICAL_NOTE', label: 'Clinical note' },
                 ]}
               />
-
-              <Input
-                label="Document Date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-              />
+              <Input label="Document date" type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input
-                label="Attending Doctor"
-                placeholder="Dr. Full Name"
-                value={doctorName}
-                onChange={(e) => setDoctorName(e.target.value)}
-              />
-              <Input
-                label="Facility / Diagnostic Lab"
-                placeholder="Laboratory Name"
-                value={provider}
-                onChange={(e) => setProvider(e.target.value)}
-              />
+              <Input label="Clinician (optional)" placeholder="Doctor name" value={doctorName} onChange={(event) => setDoctorName(event.target.value)} />
+              <Input label="Clinic or facility (optional)" placeholder="Facility name" value={provider} onChange={(event) => setProvider(event.target.value)} />
             </div>
-
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Key Findings / Notes
-              </label>
+              <label htmlFor="record-notes" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Notes or findings (optional)</label>
               <textarea
+                id="record-notes"
                 rows={3}
                 value={summary}
-                onChange={(e) => setSummary(e.target.value)}
-                placeholder="Enter clinical notes, reference ranges, or diagnosis summary..."
-                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                onChange={(event) => setSummary(event.target.value)}
+                placeholder="Add a short note to help identify this document."
+                className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
-
-            {/* File Drag & Drop / Selection */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Attach File (PDF, DICOM, JPG)
-              </label>
-              <div className="border-2 border-dashed border-slate-300 rounded-2xl p-5 text-center hover:border-teal-500 transition-colors bg-slate-50/50">
-                <Paperclip className="w-6 h-6 text-slate-400 mx-auto mb-2" />
-                <p className="text-xs text-slate-600 font-medium">
-                  {selectedFile ? selectedFile.name : 'Drag and drop your file here, or browse'}
-                </p>
+              <label htmlFor="record-file" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">File attachment</label>
+              <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-5 text-center">
+                <Paperclip className="mx-auto mb-2 h-6 w-6 text-slate-400" />
                 <input
+                  id="record-file"
                   type="file"
-                  id="ehr-file"
-                  className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
+                  accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] || null;
+                    setSelectedFile(file);
+                    setAttachmentError(validateRecordAttachment(file) || '');
                   }}
+                  className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-xs file:font-bold file:text-slate-700"
                 />
-                <label
-                  htmlFor="ehr-file"
-                  className="mt-2 inline-block px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 cursor-pointer hover:bg-slate-50"
-                >
-                  Choose File
-                </label>
+                <p className="mt-2 text-xs text-slate-500">PDF, JPG, or PNG · up to 10 MB</p>
+                {selectedFile && <p className="mt-1 text-xs text-slate-600">{selectedFile.name} · {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>}
+                {attachmentError && <p role="alert" className="mt-2 text-xs font-medium text-rose-700">{attachmentError}</p>}
               </div>
             </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-              <Button variant="outline" onClick={() => setIsUploadOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="primary" type="submit" isLoading={uploadMutation.isPending}>
-                Save Record
-              </Button>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
+              <Button type="button" variant="outline" onClick={() => setIsUploadOpen(false)}>Cancel</Button>
+              <Button type="submit" variant="primary" isLoading={uploadMutation.isPending}>Save record</Button>
             </div>
           </form>
         </Modal>

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mockDoctors, mockMedicines } from '../data/mockData';
 import { availableTimes, dateAfterDays, demoSchedule, filterDoctors, localDate, validateBooking, validateCheckout } from './frontend';
 import { executeRequest, errorMessage } from './request';
+import { validateRecordAttachment } from './recordAttachments';
 import { demoUser, getDemoSession, saveDemoSession, saveDemoProfile, clearDemoSession, settingsKey, readStored, writeStored } from './demo';
 
 const now = new Date(2026, 9, 9, 12, 0);
@@ -100,4 +101,16 @@ test('demo profiles and preferences survive refresh and stay isolated by account
 test('storage failures report that changes were not saved', () => {
   Object.defineProperty(globalThis, 'localStorage', { value: { setItem() { throw new Error('quota'); } }, configurable: true });
   assert.throws(() => writeStored('hc_preferences', {}), /could not be saved/);
+});
+
+
+test('medical record attachments accept matching PDF and image files up to 10 MB', () => {
+  assert.equal(validateRecordAttachment({ name: 'report.pdf', type: 'application/pdf', size: 1024 }), null);
+  assert.equal(validateRecordAttachment({ name: 'scan.JPG', type: 'image/jpeg', size: 1024 }), null);
+  assert.equal(validateRecordAttachment({ name: 'image.png', type: 'image/png', size: 1024 }), null);
+  assert.match(validateRecordAttachment(null) || '', /Choose a PDF/);
+  assert.match(validateRecordAttachment({ name: 'empty.pdf', type: 'application/pdf', size: 0 }) || '', /empty/);
+  assert.match(validateRecordAttachment({ name: 'large.pdf', type: 'application/pdf', size: 10 * 1024 * 1024 + 1 }) || '', /10 MB/);
+  assert.match(validateRecordAttachment({ name: 'report.pdf', type: 'image/png', size: 10 }) || '', /matching/);
+  assert.match(validateRecordAttachment({ name: 'scan.dcm', type: 'application/dicom', size: 10 }) || '', /matching/);
 });

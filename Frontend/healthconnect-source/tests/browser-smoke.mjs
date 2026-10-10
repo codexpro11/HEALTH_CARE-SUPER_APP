@@ -42,6 +42,28 @@ try {
     await page.locator('main h1').first().waitFor();
   }
 
+  await page.goto('http://127.0.0.1:4173/app/medical-records');
+  await page.getByRole('button', { name: 'Add a record', exact: true }).click();
+  await page.getByLabel('Document title').fill('Smoke CBC Report');
+  await page.locator('#record-file').setInputFiles({
+    name: 'smoke-report.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n%%EOF'),
+  });
+  await page.getByRole('button', { name: 'Save record', exact: true }).click();
+  await page.getByText('Smoke CBC Report', { exact: true }).first().waitFor();
+  await page.getByRole('button', { name: 'View', exact: true }).first().click();
+  await page.locator('iframe[title="Smoke CBC Report"]').waitFor();
+  await page.screenshot({ path: 'test-results/medical-record-preview.png' });
+  const [recordDownload] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Download file', exact: true }).click(),
+  ]);
+  assert.equal(recordDownload.suggestedFilename(), 'smoke-report.pdf');
+  await page.getByRole('button', { name: 'Close modal' }).click();
+  await page.reload();
+  await page.getByText('Smoke CBC Report', { exact: true }).waitFor();
+
   await page.goto('http://127.0.0.1:4173/app/settings');
   const sms = page.getByLabel('SMS', { exact: true });
   await sms.check();

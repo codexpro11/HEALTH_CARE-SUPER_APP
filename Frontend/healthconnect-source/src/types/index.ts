@@ -185,6 +185,8 @@ export interface MedicalRecord {
   fileUrl?: string;
   fileSize?: string;
   fileType?: string;
+  fileMimeType?: string;
+  originalFileName?: string;
   tags: string[];
   confidentialityLevel: 'STANDARD' | 'RESTRICTED' | 'CONFIDENTIAL';
 }
