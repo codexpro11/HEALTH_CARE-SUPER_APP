@@ -92,6 +92,7 @@ export const MedicalRecordCard: React.FC<MedicalRecordCardProps> = ({
             variant="secondary"
             size="sm"
             leftIcon={<Download className="w-3.5 h-3.5" />}
+            disabled={!record.fileUrl && !record.originalFileName}
             onClick={() => onDownload?.(record)}
           >
             Download
