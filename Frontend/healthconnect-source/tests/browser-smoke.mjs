@@ -54,6 +54,7 @@ try {
   await page.getByText('Smoke CBC Report', { exact: true }).first().waitFor();
   await page.getByRole('button', { name: 'View', exact: true }).first().click();
   await page.locator('iframe[title="Smoke CBC Report"]').waitFor();
+  await page.screenshot({ path: 'test-results/medical-record-preview.png' });
   const [recordDownload] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Download file', exact: true }).click(),
