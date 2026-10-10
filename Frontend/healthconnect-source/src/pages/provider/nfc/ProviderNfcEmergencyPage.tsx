@@ -4,23 +4,27 @@ import { ArrowLeft, Siren, AlertTriangle } from 'lucide-react';
 import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
 import { nfcApi } from '../../../services/nfcApi';
+import { currentCredential } from '../../../lib/nfcDemo';
 
 export const ProviderNfcEmergencyPage: React.FC = () => {
   const navigate = useNavigate();
   const [reason, setReason] = useState('');
   const [isRequesting, setIsRequesting] = useState(false);
+  const [error, setError] = useState('');
 
   const handleOverride = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reason.trim()) return;
+    if (reason.trim().length < 10) { setError('Enter a reason with at least 10 characters.'); return; }
+    setError('');
 
     setIsRequesting(true);
     
     try {
       // Simulate backend authorization
       const response = await nfcApi.requestEmergencyAccess({
-        nfcPayload: 'EMERGENCY-OVERRIDE',
+        nfcPayload: currentCredential().id,
         providerId: 'provider-1',
+        hospitalId: 'hospital-central',
         reason
       });
       
@@ -28,7 +32,8 @@ export const ProviderNfcEmergencyPage: React.FC = () => {
       navigate(`/provider/nfc/summary/${response.patientId}`);
     } catch (error) {
       setIsRequesting(false);
-      alert('Emergency access request failed.');
+      setIsRequesting(false);
+      setError(error instanceof Error ? error.message : 'Emergency access request failed.');
     }
   };
 
@@ -52,7 +57,7 @@ export const ProviderNfcEmergencyPage: React.FC = () => {
           Emergency Override
         </h1>
         <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-          Emergency access grants immediate read-only permission to critical patient vitals, allergies, and emergency contacts without requiring explicit consent.
+          This demo grants five-minute access to critical information only. An active card, authorized provider persona, hospital association and a reason are required.
         </p>
       </div>
 
@@ -62,12 +67,13 @@ export const ProviderNfcEmergencyPage: React.FC = () => {
           <div className="text-sm space-y-1">
             <p className="font-bold">This action is strictly audited.</p>
             <p className="opacity-90 leading-relaxed">
-              All emergency override requests are logged, monitored, and subject to post-incident review by the hospital administration.
+              Demo attempts appear in the patient NFC access history in this browser. Live hospital auditing requires the backend.
             </p>
           </div>
         </div>
 
         <form onSubmit={handleOverride} className="space-y-4">
+          {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
           <div>
             <label htmlFor="reason" className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
               Reason for Emergency Access <span className="text-rose-500">*</span>
@@ -86,7 +92,7 @@ export const ProviderNfcEmergencyPage: React.FC = () => {
             type="submit" 
             variant="primary" 
             className="w-full justify-center bg-rose-600 hover:bg-rose-700 border-transparent text-white"
-            disabled={!reason.trim() || isRequesting}
+            disabled={reason.trim().length < 10 || isRequesting}
           >
             {isRequesting ? 'Authorizing...' : 'Authorize Emergency Access'}
           </Button>

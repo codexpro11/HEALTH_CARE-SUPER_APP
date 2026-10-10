@@ -1,6 +1,8 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { homeForRole, isProviderRole } from '../lib/nfcAuthorization';
+import { RoleWorkspacePage } from '../pages/RoleWorkspacePage';
 
 // Layouts
 import { AppLayout } from '../layouts/AppLayout';
@@ -44,10 +46,11 @@ import { ProviderNfcEmergencyPage } from '../pages/provider/nfc/ProviderNfcEmerg
 
 // Protected Route Guard
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, role } = useAuth();
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+  if (role !== 'PATIENT') return <Navigate to={homeForRole(role)} replace />;
   return <>{children}</>;
 };
 
@@ -58,8 +61,8 @@ const ProviderRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     return <Navigate to="/login" replace />;
   }
   // Check if role is allowed to access provider dashboard
-  if (role !== 'DOCTOR' && role !== 'HOSPITAL' && role !== 'ADMIN') {
-    return <Navigate to="/app/dashboard" replace />;
+  if (!isProviderRole(role)) {
+    return <Navigate to={homeForRole(role)} replace />;
   }
   return <>{children}</>;
 };
@@ -67,17 +70,12 @@ const ProviderRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 // Public Route Guard (Redirect to dashboard if logged in)
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, role } = useAuth();
-  if (isAuthenticated) {
-    if (role === 'DOCTOR' || role === 'HOSPITAL') {
-      return <Navigate to="/provider/dashboard" replace />;
-    }
-    return <Navigate to="/app/dashboard" replace />;
-  }
+  if (isAuthenticated) return <Navigate to={homeForRole(role)} replace />;
   return <>{children}</>;
 };
 
 export const AppRoutes: React.FC = () => {
-  const { isLoading } = useAuth();
+  const { isLoading, isAuthenticated, role } = useAuth();
 
   if (isLoading) {
     return (
@@ -90,7 +88,8 @@ export const AppRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Root redirect */}
-      <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
+      <Route path="/" element={<Navigate to={isAuthenticated ? homeForRole(role) : '/login'} replace />} />
+      <Route path="/workspace" element={!isAuthenticated ? <Navigate to="/login" replace /> : role === 'PATIENT' || isProviderRole(role) ? <Navigate to={homeForRole(role)} replace /> : <RoleWorkspacePage />} />
 
       {/* Auth Routes */}
       <Route
@@ -162,7 +161,7 @@ export const AppRoutes: React.FC = () => {
       </Route>
 
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
