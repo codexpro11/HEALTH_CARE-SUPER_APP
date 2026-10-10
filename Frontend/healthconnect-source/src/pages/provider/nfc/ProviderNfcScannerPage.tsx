@@ -4,42 +4,39 @@ import { Scan, Smartphone, CheckCircle2, XCircle, AlertCircle, Loader2, Ban } fr
 import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
 import { nfcApi } from '../../../services/nfcApi';
+import { currentCredential, NfcAccessDenied } from '../../../lib/nfcDemo';
 
 export const ProviderNfcScannerPage: React.FC = () => {
   const navigate = useNavigate();
   const [scanStatus, setScanStatus] = useState<'IDLE' | 'SCANNING' | 'CARD_DETECTED' | 'VERIFYING' | 'AUTHORIZED' | 'DENIED' | 'ERROR'>('IDLE');
   const [errorMessage, setErrorMessage] = useState('');
 
+  const [scenario, setScenario] = useState('authorized');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+  const active = React.useRef(true);
   const handleSimulateScan = async () => {
-    setScanStatus('SCANNING');
-    
-    // Simulate detecting a card quickly
-    setTimeout(async () => {
-      setScanStatus('CARD_DETECTED');
-      
-      // Now verify via backend API
-      setTimeout(async () => {
-        setScanStatus('VERIFYING');
-        
-        try {
-          // This call goes to the backend (mocked currently in nfcApi)
-          const response = await nfcApi.requestAccess({
-            nfcPayload: 'HC-8472-••••-9123',
-            providerId: 'provider-1'
-          });
-          
-          setScanStatus('AUTHORIZED');
-          
-          setTimeout(() => {
-            navigate(`/provider/nfc/summary/${response.patientId}`);
-          }, 1000);
-        } catch (error) {
-          // If backend throws 403 or similar
-          setErrorMessage('Access denied by server');
-          setScanStatus('DENIED');
-        }
-      }, 1000);
-    }, 1500);
+    if (busy) return;
+    setBusy(true); setErrorMessage(''); setScanStatus('SCANNING');
+    const pause = () => new Promise(resolve => setTimeout(resolve, 250));
+    try {
+      await pause(); if (!active.current) return; setScanStatus('CARD_DETECTED');
+      await pause(); if (!active.current) return; setScanStatus('VERIFYING');
+      const card = currentCredential();
+      const response = await nfcApi.requestAccess({
+        nfcPayload: scenario === 'unknown-card' ? 'HC-NFC:unknown' : card.id,
+        providerId: 'provider-1',
+        hospitalId: scenario === 'wrong-hospital' ? 'hospital-wellness' : 'hospital-central',
+        membershipActive: scenario !== 'unlinked-provider',
+      });
+      if (!active.current) return;
+      setScanStatus('AUTHORIZED');
+      navigate('/provider/nfc/summary/' + response.patientId);
+    } catch (failure) {
+      if (!active.current) return;
+      setErrorMessage(failure instanceof Error ? failure.message : 'Unable to scan the demo card.');
+      setScanStatus(failure instanceof NfcAccessDenied ? 'DENIED' : 'ERROR');
+    } finally { if (active.current) setBusy(false); }
   };
 
   return (
@@ -49,7 +46,7 @@ export const ProviderNfcScannerPage: React.FC = () => {
           NFC Patient Scanner
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mt-2">
-          Tap the patient's HealthConnect NFC card
+          Simulate scanning the card for this account's patient persona
         </p>
       </div>
 
@@ -97,7 +94,7 @@ export const ProviderNfcScannerPage: React.FC = () => {
             </div>
             <div>
               <p className="font-bold text-slate-900 dark:text-slate-100 text-lg">Verifying Access</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Checking patient consent...</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Checking demo card, facility and patient consent...</p>
             </div>
           </div>
         )}
@@ -148,6 +145,12 @@ export const ProviderNfcScannerPage: React.FC = () => {
       </Card>
 
       <div className="flex flex-col items-center gap-4">
+        <label className="text-sm font-bold">Demo reader scenario
+          <select value={scenario} disabled={busy} onChange={event => setScenario(event.target.value)} className="block mt-2 p-2 border rounded-xl bg-white dark:bg-slate-900">
+            <option value="authorized">Authorized hospital</option><option value="wrong-hospital">Wrong hospital</option>
+            <option value="unlinked-provider">Provider without hospital association</option><option value="unknown-card">Unknown or replaced card</option>
+          </select>
+        </label>
         <Button 
           variant="primary" 
           size="lg" 

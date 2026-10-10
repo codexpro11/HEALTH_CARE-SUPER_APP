@@ -2,30 +2,47 @@ import React, { useState } from 'react';
 import { CreditCard, Power, Ban, RefreshCcw, Wifi, ShieldCheck, Activity } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
+import { issueCredential, revokeCredential, maskedCredential } from '../../lib/nfcDemo';
+import { useNfcDemoState } from '../../lib/useNfcDemoState';
 
 export const NfcCardPage: React.FC = () => {
-  const [nfcStatus, setNfcStatus] = useState<'ACTIVE' | 'REVOKED' | 'EXPIRED'>('ACTIVE');
+  const { state, error: loadError, refresh } = useNfcDemoState();
   const [isSimulatingWrite, setIsSimulatingWrite] = useState(false);
-  const cardId = 'HC-8472-••••-9123';
-  const issueDate = '2025-10-15';
-  const lastUsed = '2026-09-08 14:30';
-
+  const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
+  const card = state?.credentials[0];
+  const run = (action: () => void, message: string) => {
+    try { action(); setError(''); setNotice(message); }
+    catch (failure) { setError(failure instanceof Error ? failure.message : 'Card action failed.'); }
+  };
+  const handleIssue = () => run(() => { issueCredential(); }, 'New demo card activated. Previous identifiers no longer work.');
+  const handleRevoke = () => {
+    if (card && confirm('Revoke this NFC card? Provider access using it will stop in this demo.')) {
+      run(() => revokeCredential(card.id), 'Card revoked. Existing demo access has been invalidated.');
+    }
+  };
+  const handleReplace = () => {
+    if (confirm('Replace this card? The previous identifier will be revoked.')) handleIssue();
+  };
   const handleSimulateWrite = () => {
+    if (!card || card.status !== 'ACTIVE' || Date.parse(card.expiresAt) <= Date.now()) return;
     setIsSimulatingWrite(true);
     setTimeout(() => {
       setIsSimulatingWrite(false);
-      alert('NFC Card provisioned successfully (Simulated)');
-    }, 1500);
+      setNotice('Demo provisioning complete. The card contains an opaque identifier only; no physical NFC hardware was used.');
+    }, 700);
   };
-
-  const handleRevoke = () => {
-    if (confirm('Are you sure you want to revoke this NFC card? It will immediately stop working.')) {
-      setNfcStatus('REVOKED');
-    }
-  };
+  if (loadError) return <Card className="p-6"><p role="alert">{loadError}</p><Button onClick={refresh}>Retry</Button></Card>;
+  if (!card) return <p role="status">Loading NFC card...</p>;
+  const nfcStatus = card.status === 'ACTIVE' && Date.parse(card.expiresAt) <= Date.now() ? 'EXPIRED' : card.status;
+  const cardId = maskedCredential(card.id);
+  const issueDate = card.issuedAt.slice(0, 10);
+  const lastUsed = card.lastUsedAt ? new Date(card.lastUsedAt).toLocaleString() : 'Not used yet';
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
+      {notice && <p role="status" className="p-3 rounded-xl bg-teal-50 text-teal-800 text-sm">{notice}</p>}
+      {error && <p role="alert" className="p-3 rounded-xl bg-rose-50 text-rose-800 text-sm">{error}</p>}
       <div>
         <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
           My HealthConnect NFC Card
@@ -67,7 +84,7 @@ export const NfcCardPage: React.FC = () => {
                         <span className="font-bold text-sm tracking-wide text-emerald-50">ACTIVE</span>
                       </>
                     )}
-                    {nfcStatus === 'REVOKED' && (
+                    {nfcStatus !== 'ACTIVE' && (
                       <>
                         <div className="w-2 h-2 rounded-full bg-rose-400" />
                         <span className="font-bold text-sm tracking-wide text-rose-100">REVOKED</span>
@@ -121,7 +138,7 @@ export const NfcCardPage: React.FC = () => {
                   variant="primary" 
                   className="w-full justify-center" 
                   leftIcon={<CreditCard className="w-4 h-4" />}
-                  onClick={() => setNfcStatus('ACTIVE')}
+                  onClick={handleIssue}
                 >
                   Activate New Card
                 </Button>
@@ -142,6 +159,7 @@ export const NfcCardPage: React.FC = () => {
                 variant="outline" 
                 className="w-full justify-center" 
                 leftIcon={<RefreshCcw className="w-4 h-4" />}
+                onClick={handleReplace}
               >
                 Request Replacement
               </Button>
@@ -154,20 +172,33 @@ export const NfcCardPage: React.FC = () => {
               <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-300">Developer / Testing</h3>
             </div>
             <p className="text-xs text-indigo-700/80 dark:text-indigo-400/80 leading-relaxed">
-              Use this tool to simulate writing the secure patient identifier to a physical NFC card using WebNFC (where supported).
+              Preview identifier provisioning. This browser demo does not read or write physical NFC cards.
             </p>
             <Button 
               variant="primary"
               className="w-full justify-center bg-indigo-600 hover:bg-indigo-700 text-white border-transparent"
               leftIcon={<Wifi className="w-4 h-4" />}
               onClick={handleSimulateWrite}
-              disabled={isSimulatingWrite}
+              disabled={isSimulatingWrite || nfcStatus !== 'ACTIVE'}
             >
               {isSimulatingWrite ? 'Writing to NFC...' : 'Simulate Write to NFC Card'}
             </Button>
           </Card>
         </div>
       </div>
+      <Card className="p-4 sm:p-5 space-y-3">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">NFC Access History</h3>
+        <p className="text-xs text-slate-500">Demo activity in this browser. Emergency grants last five minutes.</p>
+        {state!.history.length === 0 ? <p className="text-sm text-slate-500">No access attempts yet.</p> :
+          <ul className="space-y-2">{state!.history.slice(0, 10).map(item => (
+            <li key={item.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-sm">
+              <strong>{item.outcome} · {item.accessType}</strong>
+              <p>{new Date(item.timestamp).toLocaleString()}</p>
+              <p>{item.reason}</p>
+              {item.scopes.length > 0 && <p className="text-xs text-slate-500">{item.scopes.join(', ')}</p>}
+            </li>
+          ))}</ul>}
+      </Card>
     </div>
   );
 };

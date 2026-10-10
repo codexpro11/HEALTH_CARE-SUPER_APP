@@ -12,6 +12,7 @@ import { isDemoMode, demoUser, getDemoSession, saveDemoSession, clearDemoSession
 import { errorMessage } from '../lib/request';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCartStore } from '../stores/cartStore';
+import { clearNfcAccess } from '../lib/nfcDemo';
 
 interface AuthContextType {
   user: User | null;
@@ -104,6 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const startDemo = (profile: User, remember = true) => {
     // Demo credentials are never stored or sent to an authentication provider.
+    clearNfcAccess();
     queryClient.clear();
     useCartStore.getState().clearCart();
     saveDemoSession(profile, remember);
@@ -154,7 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     clearError();
     try {
-      if (isDemoMode) clearDemoSession();
+      if (isDemoMode) { clearNfcAccess(); clearDemoSession(); }
       else await signOut(getFirebaseAuth());
       setUser(null);
       queryClient.clear();
@@ -166,6 +168,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const switchRole = (role: UserRole) => {
     if (!isDemoMode || !user) return;
+    clearNfcAccess();
+    queryClient.clear();
     const profile = { ...user, role };
     saveDemoProfile(profile);
     setUser(profile);

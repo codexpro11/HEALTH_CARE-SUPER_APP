@@ -17,9 +17,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useThemeStore } from '../stores/themeStore';
+import { isDemoMode } from '../lib/demo';
 
 export const ProviderLayout: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, switchRole } = useAuth();
   const { theme, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -48,6 +49,7 @@ export const ProviderLayout: React.FC = () => {
         <div className="flex items-center justify-between px-4 h-full">
           <div className="flex items-center gap-3">
             <button
+              aria-label="Open provider menu"
               onClick={() => setIsMobileMenuOpen(true)}
               className="lg:hidden p-2 -ml-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
             >
@@ -61,6 +63,7 @@ export const ProviderLayout: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {isDemoMode && <button onClick={() => switchRole('PATIENT')} className="text-xs font-bold text-teal-700 dark:text-teal-300 px-3 py-2 rounded-xl border border-teal-200">Return to Patient Demo</button>}
             <div className="hidden sm:flex items-center gap-3 mr-2">
               <div className="text-right">
                 <p className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-none">{user?.fullName}</p>

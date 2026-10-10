@@ -29,7 +29,7 @@ export const LoginPage: React.FC = () => {
 
     const success = await login({ email, password, rememberMe });
     if (success) {
-      navigate('/app/dashboard');
+      navigate('/');
     }
   };
 
@@ -38,7 +38,7 @@ export const LoginPage: React.FC = () => {
     clearError();
     const success = await loginWithGoogle();
     if (success) {
-      navigate('/app/dashboard');
+      navigate('/');
     }
   };
 
