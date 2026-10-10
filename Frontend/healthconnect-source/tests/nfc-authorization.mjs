@@ -11,7 +11,8 @@ page.on('pageerror', error => errors.push(error.message));
 page.on('request', request => { if (request.url().includes('/api/v1/')) requests.push(request.url()); });
 const origin = process.env.TEST_APP_URL || 'http://127.0.0.1:4173/';
 const hash = process.env.TEST_HASH_ROUTER === 'true' ? '#' : '';
-const go = route => page.goto(origin + hash + route, { waitUntil: 'domcontentloaded' });
+const root = origin.replace(/\/$/, '');
+const go = route => page.goto(root + (hash ? '/#' : '') + route, { waitUntil: 'domcontentloaded' });
 const provider = async () => {
   await page.getByRole('button', { name: 'Role: PATIENT' }).click();
   await page.getByRole('button', { name: 'DOCTOR', exact: true }).click();
