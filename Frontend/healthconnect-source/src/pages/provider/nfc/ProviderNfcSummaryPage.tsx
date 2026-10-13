@@ -5,6 +5,7 @@ import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
 import { useAuth } from '../../../auth/AuthContext';
 import { currentNfcAccess, NFC_CHANGED, type DemoGrant } from '../../../lib/nfcDemo';
+import { getNfcInsuranceSummaries, INSURANCE_CHANGED } from '../../../lib/insuranceDemo';
 
 export const ProviderNfcSummaryPage: React.FC = () => {
   const { id = '' } = useParams();
@@ -15,12 +16,14 @@ export const ProviderNfcSummaryPage: React.FC = () => {
     const refresh = () => setGrant(currentNfcAccess(id));
     refresh();
     window.addEventListener(NFC_CHANGED, refresh);
+    window.addEventListener(INSURANCE_CHANGED, refresh);
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
     const current = currentNfcAccess(id);
     const timer = current ? setTimeout(refresh, Math.max(0, current.expiresAt - Date.now()) + 20) : undefined;
     return () => {
       window.removeEventListener(NFC_CHANGED, refresh);
+      window.removeEventListener(INSURANCE_CHANGED, refresh);
       window.removeEventListener('storage', refresh);
       window.removeEventListener('focus', refresh);
       clearTimeout(timer);
@@ -36,6 +39,7 @@ export const ProviderNfcSummaryPage: React.FC = () => {
 
   const has = (scope: string) => grant.scopes.includes(scope);
   const clinical = has('Medical Summary');
+  const policies = has('Insurance') ? getNfcInsuranceSummaries(id) : [];
   const age = user?.dateOfBirth ? Math.floor((Date.now() - Date.parse(user.dateOfBirth)) / (365.25 * 86400000)) : null;
   return <div className="space-y-6 max-w-5xl mx-auto">
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -69,7 +73,14 @@ export const ProviderNfcSummaryPage: React.FC = () => {
         </Card>
         {clinical && <Card className="p-6 space-y-3"><h3 className="font-bold flex gap-2"><FileText className="w-5 h-5 text-teal-600" />Medical Summary</h3><p className="text-sm">{user?.chronicConditions?.join(', ') || 'No condition information supplied'}</p></Card>}
         {has('Current Medications') && <Card className="p-6"><h3 className="font-bold">Current Medications</h3><p className="text-sm text-slate-500 mt-2">No medication information supplied for this demo profile.</p></Card>}
-        {has('Insurance') && <Card className="p-6 space-y-3"><h3 className="font-bold">Insurance Information</h3><p>SecureHealth Insurance · Comprehensive Family Care</p><p className="text-sm font-mono">XXXX-XXXX-9482 · Sample policy</p></Card>}
+        {has('Insurance') && <Card className="p-6 space-y-3">
+          <h3 className="font-bold">Insurance Information</h3>
+          {policies.length === 0 ? <p className="text-sm text-slate-500">No active demo policies.</p> :
+            policies.map(policy => <div key={policy.id} className="space-y-1">
+              <p>{policy.provider} · {policy.plan}</p>
+              <p className="text-sm font-mono">{policy.policyNumberMasked} · Active demo policy</p>
+            </div>)}
+        </Card>}
       </div>
     </div>
   </div>;
