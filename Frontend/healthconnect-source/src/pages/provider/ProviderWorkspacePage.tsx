@@ -118,7 +118,7 @@ export function ProviderWorkspacePage({ view = 'dashboard' }: { view?: View }) {
     </div>
     <Card className="p-4">
       <label className="text-sm font-bold">Demo doctor
-        <select value={doctorId} className={inputClass} onChange={event => {
+        <select aria-label="Demo doctor" value={doctorId} className={inputClass} onChange={event => {
           try { selectDemoDoctor(event.target.value); setDoctorId(event.target.value); setNotice(''); setError(''); }
           catch (failure) { setError(failureMessage(failure)); }
         }}>{mockDoctors.map(item => <option key={item.id} value={item.id}>{item.name} · {item.specialization}</option>)}</select>
@@ -141,8 +141,8 @@ export function ProviderWorkspacePage({ view = 'dashboard' }: { view?: View }) {
 
     {view === 'appointments' && !id && <>
       <Card className="p-4 grid sm:grid-cols-2 gap-4">
-        <label className="text-sm font-bold">Search appointments<input value={search} onChange={e => setSearch(e.target.value)} className={inputClass} placeholder="Patient, ID or reason" /></label>
-        <label className="text-sm font-bold">Appointment status<select value={filter} onChange={e => setFilter(e.target.value)} className={inputClass}>
+        <label className="text-sm font-bold">Search appointments<input aria-label="Search appointments" value={search} onChange={e => setSearch(e.target.value)} className={inputClass} placeholder="Patient, ID or reason" /></label>
+        <label className="text-sm font-bold">Appointment status<select aria-label="Appointment status" value={filter} onChange={e => setFilter(e.target.value)} className={inputClass}>
           {['ALL', 'BOOKED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'].map(status =>
             <option key={status} value={status}>{statusLabel(status)}</option>)}</select></label>
       </Card>
@@ -174,9 +174,9 @@ export function ProviderWorkspacePage({ view = 'dashboard' }: { view?: View }) {
         <p className="text-sm text-slate-500">Start the consultation to edit. Completion saves the latest notes and locks the visit.</p>
         <form className="space-y-4" onSubmit={event => { event.preventDefault(); perform(() =>
           saveProviderConsultation(doctorId, selected.id, notes, prescription), 'Consultation draft saved in this browser.'); }}>
-          <label className="block text-sm font-bold">Clinical notes<textarea required minLength={10} maxLength={10000} rows={5}
+          <label className="block text-sm font-bold">Clinical notes<textarea aria-label="Clinical notes" required minLength={10} maxLength={10000} rows={5}
             disabled={selected.status !== 'IN_PROGRESS'} value={notes} onChange={e => setNotes(e.target.value)} className={inputClass} /></label>
-          <label className="block text-sm font-bold">Demo prescription draft (optional)<textarea maxLength={4000} rows={3}
+          <label className="block text-sm font-bold">Demo prescription draft (optional)<textarea aria-label="Demo prescription draft (optional)" maxLength={4000} rows={3}
             disabled={selected.status !== 'IN_PROGRESS'} value={prescription} onChange={e => setPrescription(e.target.value)} className={inputClass} /></label>
           <p className="text-xs text-amber-800 dark:text-amber-300">Demo text only. This is not a signed prescription and cannot be used to dispense medication.</p>
           {selected.status === 'IN_PROGRESS' && <div className="flex flex-wrap gap-3">
