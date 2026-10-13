@@ -51,7 +51,7 @@ export function PolicyForm({ policy, onSaved }: { policy?: InsurancePolicy; onSa
       </label>
     </div>
     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Coverage Notes
-      <textarea className={fieldClass} rows={3} maxLength={2000} value={form.coverageNotes} onChange={event => change('coverageNotes', event.target.value)} placeholder="Optional sample coverage details from your policy." />
+      <textarea aria-label="Coverage Notes" className={fieldClass} rows={3} maxLength={2000} value={form.coverageNotes} onChange={event => change('coverageNotes', event.target.value)} placeholder="Optional sample coverage details from your policy." />
     </label>
     <Button type="submit" disabled={busy}>{busy ? 'Saving...' : 'Save Policy'}</Button>
   </form>;
@@ -94,7 +94,7 @@ export function ClaimForm({ policies, claim, onSaved }: { policies: InsurancePol
       </label>
     </div>
     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Claim Description
-      <textarea className={fieldClass} required rows={3} maxLength={2000} value={form.description} onChange={event => change('description', event.target.value)} />
+      <textarea aria-label="Claim Description" className={fieldClass} required rows={3} maxLength={2000} value={form.description} onChange={event => change('description', event.target.value)} />
     </label>
     <Button type="submit" disabled={busy || policies.length === 0}>{busy ? 'Saving...' : 'Save Draft'}</Button>
   </form>;
