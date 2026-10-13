@@ -1,0 +1,8 @@
+temp_hospital_id,owner_firebase_uid,owner_email,owner_full_name,owner_phone,name,registration_number,address,city,state,phone,verified,active,created_at,updated_at
+0,SEED-BULK-eeb8b72d-2f0c-4d29-aada-2c629ae0c35c,hospital1.bulk@healthcare.test,Choudhury Multispecialty Hospital Admin,4332181960,Choudhury Multispecialty Hospital,REG-BULK-1000,"90/83, Saini Circle",Mumbai,Maharashtra,7940265423,False,True,2026-09-17 05:53:33,2026-09-17 05:53:33
+1,SEED-BULK-41257bce-d343-42b6-9288-3ddc43477c34,hospital2.bulk@healthcare.test,Rai Medical Center Admin,5594078161,Rai Medical Center,REG-BULK-1001,"31/03
+Buch Road",Bengaluru,Karnataka,1647525534,True,True,2026-09-17 05:53:33,2026-09-17 05:53:33
+2,SEED-BULK-3cd48436-64a5-485b-b584-e442f78fe5f0,hospital3.bulk@healthcare.test,Walla Multispecialty Hospital Admin,2764835030,Walla Multispecialty Hospital,REG-BULK-1002,"953, Randhawa Chowk",Mumbai,Maharashtra,2423884969,True,True,2026-09-17 05:53:33,2026-09-17 05:53:33
+3,SEED-BULK-fdd44c38-4b47-462f-ad20-102abf08b9df,hospital4.bulk@healthcare.test,Devi Multispecialty Hospital Admin,1012269166,Devi Multispecialty Hospital,REG-BULK-1003,"01/84
+Choudhury Path",Pune,Maharashtra,6270482814,True,True,2026-09-17 05:53:33,2026-09-17 05:53:33
+4,SEED-BULK-807393de-e128-4abd-89c8-0d66e092c412,hospital5.bulk@healthcare.test,Dua Multispecialty Hospital Admin,2880957015,Dua Multispecialty Hospital,REG-BULK-1004,"11/71, Dass Circle",Bengaluru,Karnataka,7824896383,True,True,2026-09-17 05:53:33,2026-09-17 05:53:33

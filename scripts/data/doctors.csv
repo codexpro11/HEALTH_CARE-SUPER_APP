@@ -1,0 +1,26 @@
+temp_doctor_id,hospital_temp_id,firebase_uid,email,full_name,phone,specialization,license_number,qualifications,experience_years,consultation_fee,created_at,updated_at
+0,4,SEED-BULK-5124290a-cd9b-48f7-9509-8223cb34d392,doctor1.bulk@healthcare.test,Dr. Raksha Varughese,1331509839,ENT,LIC-BULK-2000,"MBBS, MD",15,1007.12,2026-09-17 05:53:33,2026-09-17 05:53:33
+1,0,SEED-BULK-ab17e6b3-e66c-4227-b2a2-c6f9c2ee7f3f,doctor2.bulk@healthcare.test,Dr. Daniel Karnik,0518347382,Gastroenterology,LIC-BULK-2001,"MBBS, MD",23,807.14,2026-09-17 05:53:33,2026-09-17 05:53:33
+2,1,SEED-BULK-f7c0cdd4-96c3-4125-8f89-d5e26ddf1e98,doctor3.bulk@healthcare.test,Dr. Xavier Solanki,3116566701,Gastroenterology,LIC-BULK-2002,"MBBS, MS",4,411.3,2026-09-17 05:53:33,2026-09-17 05:53:33
+3,,SEED-BULK-af2eefb4-a88c-4299-804f-d5ffa75b7de8,doctor4.bulk@healthcare.test,Dr. Ikbal Kothari,3872624731,Urology,LIC-BULK-2003,"MBBS, MS",20,617.43,2026-09-17 05:53:33,2026-09-17 05:53:33
+4,,SEED-BULK-205fa867-0c71-48e6-b856-94161ad21093,doctor5.bulk@healthcare.test,Dr. Chandresh Zachariah,1326773602,Gynecology,LIC-BULK-2004,"MBBS, DNB",4,1467.74,2026-09-17 05:53:33,2026-09-17 05:53:33
+5,4,SEED-BULK-789bc438-4c91-4266-b719-995db06e4c30,doctor6.bulk@healthcare.test,Dr. Alka Sha,6872343098,Neurology,LIC-BULK-2005,"MBBS, DNB",29,1334.05,2026-09-17 05:53:33,2026-09-17 05:53:33
+6,0,SEED-BULK-05431340-4e2b-48ea-981c-f2977c605e0e,doctor7.bulk@healthcare.test,Dr. Chandresh Sood,0812191361,Cardiology,LIC-BULK-2006,"MBBS, MD",25,647.27,2026-09-17 05:53:33,2026-09-17 05:53:33
+7,,SEED-BULK-c047da4c-f270-4be5-97f7-183c9fe11846,doctor8.bulk@healthcare.test,Dr. Balveer Bumb,9985435346,Pediatrics,LIC-BULK-2007,MBBS,13,633.57,2026-09-17 05:53:33,2026-09-17 05:53:33
+8,2,SEED-BULK-8ddd47f1-670a-4ca9-91b5-acf48548784e,doctor9.bulk@healthcare.test,Dr. Diya Bora,7991183842,Orthopedics,LIC-BULK-2008,"MBBS, MS",12,551.41,2026-09-17 05:53:33,2026-09-17 05:53:33
+9,0,SEED-BULK-1d7e379f-eca0-4f86-9b13-0dec2506e8e1,doctor10.bulk@healthcare.test,Dr. Kala Mane,7849808412,Ophthalmology,LIC-BULK-2009,"MBBS, MD",18,1174.95,2026-09-17 05:53:33,2026-09-17 05:53:33
+10,3,SEED-BULK-5f5f912d-b139-4733-8162-5e180ab31a42,doctor11.bulk@healthcare.test,Dr. Nachiket Magar,9353487401,Neurology,LIC-BULK-2010,"MBBS, DNB",8,1121.54,2026-09-17 05:53:33,2026-09-17 05:53:33
+11,0,SEED-BULK-895c8c1a-5ec6-4e8d-a866-6bda7850aa05,doctor12.bulk@healthcare.test,Dr. Aarush Nath,4278680112,Pediatrics,LIC-BULK-2011,MBBS,26,678.54,2026-09-17 05:53:33,2026-09-17 05:53:33
+12,1,SEED-BULK-9f4a5511-9483-4c87-96fa-1801ef67035a,doctor13.bulk@healthcare.test,Dr. Manbir Sani,0450533158,Oncology,LIC-BULK-2012,"MBBS, DNB",29,1161.5,2026-09-17 05:53:33,2026-09-17 05:53:33
+13,3,SEED-BULK-256cfbd5-ea5e-4452-84d5-15a55932693e,doctor14.bulk@healthcare.test,Dr. Warjas Gaba,6025634216,ENT,LIC-BULK-2013,"MBBS, MD, DM",5,617.86,2026-09-17 05:53:33,2026-09-17 05:53:33
+14,4,SEED-BULK-ea40e79f-900c-4bd8-8e58-20a5b023a032,doctor15.bulk@healthcare.test,Dr. Ryan Sharma,4330365414,Psychiatry,LIC-BULK-2014,"MBBS, MS",24,1001.5,2026-09-17 05:53:33,2026-09-17 05:53:33
+15,3,SEED-BULK-fbb7cef5-2625-4c80-9607-d89fbd4bc43c,doctor16.bulk@healthcare.test,Dr. Garima Bala,4294019655,General Medicine,LIC-BULK-2015,"MBBS, MD",5,911.43,2026-09-17 05:53:33,2026-09-17 05:53:33
+16,,SEED-BULK-0d12fd3c-ca4b-4982-9159-042a803f6997,doctor17.bulk@healthcare.test,Dr. Jack Rajan,4060883561,Cardiology,LIC-BULK-2016,MBBS,5,1052.94,2026-09-17 05:53:33,2026-09-17 05:53:33
+17,3,SEED-BULK-3daed20c-8dd3-452f-8244-578468346b05,doctor18.bulk@healthcare.test,Dr. Jeet Mital,6564823662,Ophthalmology,LIC-BULK-2017,MBBS,13,757.94,2026-09-17 05:53:33,2026-09-17 05:53:33
+18,4,SEED-BULK-1fe1ba6e-6929-4696-abf8-398064a64a14,doctor19.bulk@healthcare.test,Dr. Nidra Acharya,4369957773,Neurology,LIC-BULK-2018,"MBBS, DNB",28,1430.92,2026-09-17 05:53:33,2026-09-17 05:53:33
+19,0,SEED-BULK-0686ecfa-fd87-4a9b-83c3-231f1564e5bc,doctor20.bulk@healthcare.test,Dr. Frado Mander,1343320037,Endocrinology,LIC-BULK-2019,"MBBS, DNB",25,620.19,2026-09-17 05:53:33,2026-09-17 05:53:33
+20,0,SEED-BULK-d0527acf-b189-498f-bf0d-ce4f6dcdf395,doctor21.bulk@healthcare.test,Dr. Oeshi Hayer,7632016328,Neurology,LIC-BULK-2020,"MBBS, MD, DM",6,844.47,2026-09-17 05:53:33,2026-09-17 05:53:33
+21,2,SEED-BULK-a195b1b7-d5cf-460c-b4ac-67b2d10da894,doctor22.bulk@healthcare.test,Dr. Zaid Dara,2788957986,Psychiatry,LIC-BULK-2021,"MBBS, MD",17,1395.15,2026-09-17 05:53:33,2026-09-17 05:53:33
+22,2,SEED-BULK-2c2aeb35-1606-46a5-96c7-9d713d36a1a2,doctor23.bulk@healthcare.test,Dr. Vaishnavi Sengupta,3487347143,Urology,LIC-BULK-2022,"MBBS, DNB",20,538.69,2026-09-17 05:53:33,2026-09-17 05:53:33
+23,1,SEED-BULK-5fd78ab2-294f-4182-9411-9602dcef3716,doctor24.bulk@healthcare.test,Dr. Faris Devi,3623166587,Psychiatry,LIC-BULK-2023,"MBBS, DNB",30,300.69,2026-09-17 05:53:33,2026-09-17 05:53:33
+24,0,SEED-BULK-7b4bfb68-e50b-4980-ba18-3d6c02085934,doctor25.bulk@healthcare.test,Dr. Osha Ramachandran,9670546688,Dermatology,LIC-BULK-2024,"MBBS, MS",29,1482.39,2026-09-17 05:53:33,2026-09-17 05:53:33
