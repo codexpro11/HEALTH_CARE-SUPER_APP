@@ -49,6 +49,7 @@ export const AppLayout: React.FC = () => {
   const cartCount = getItemCount();
 
   const navigationItems = [
+    { name: 'Phases & Changes', path: '/app/progress', icon: FileText },
     { name: 'Dashboard', path: '/app/dashboard', icon: Activity },
     { name: 'Doctors', path: '/app/doctors', icon: UserCheck },
     { name: 'Appointments', path: '/app/appointments', icon: Calendar },
@@ -95,7 +96,7 @@ export const AppLayout: React.FC = () => {
       {isActive && (
         <div className="bg-red-600 text-white px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-sm sticky top-0 z-50 uppercase tracking-wider">
           <Siren className="w-4 h-4 animate-bounce" />
-          <span>ACTIVE EMERGENCY BROADCAST IN PROGRESS — DISPATCH LOCATING</span>
+          <span>ACTIVE EMERGENCY BROADCAST IN PROGRESS - DISPATCH LOCATING</span>
           <button
             onClick={() => navigate('/app/emergency')}
             className="ml-2 underline hover:text-red-100 text-xs font-extrabold"

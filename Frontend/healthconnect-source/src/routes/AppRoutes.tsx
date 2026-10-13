@@ -2,6 +2,8 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { homeForRole, isProviderRole } from '../lib/nfcAuthorization';
+import { ProviderWorkspacePage } from '../pages/provider/ProviderWorkspacePage';
+import { PhaseProgressPage } from '../pages/PhaseProgressPage';
 import { RoleWorkspacePage } from '../pages/RoleWorkspacePage';
 
 // Layouts
@@ -121,6 +123,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="appointments" element={<AppointmentListPage />} />
         <Route path="appointments/:id" element={<AppointmentDetailPage />} />
         <Route path="nfc" element={<NfcCardPage />} />
+        <Route path="progress" element={<PhaseProgressPage />} />
         <Route path="consent" element={<ConsentManagementPage />} />
         <Route path="insurance" element={<InsuranceDashboardPage />} />
         <Route path="insurance/claims" element={<InsuranceClaimsPage />} />
@@ -149,14 +152,16 @@ export const AppRoutes: React.FC = () => {
         }
       >
         <Route index element={<Navigate to="/provider/dashboard" replace />} />
-        <Route path="dashboard" element={<div className="p-8">Provider Dashboard - Coming Soon</div>} />
-        <Route path="patients" element={<div className="p-8">Patients List - Coming Soon</div>} />
+        <Route path="dashboard" element={<ProviderWorkspacePage />} />
+        <Route path="patients" element={<ProviderWorkspacePage view="patients" />} />
+        <Route path="progress" element={<PhaseProgressPage />} />
+        <Route path="appointments/:id" element={<ProviderWorkspacePage view="appointments" />} />
         <Route path="nfc-scanner" element={<ProviderNfcScannerPage />} />
         <Route path="nfc/summary/:id" element={<ProviderNfcSummaryPage />} />
         <Route path="nfc/emergency" element={<ProviderNfcEmergencyPage />} />
-        <Route path="appointments" element={<div className="p-8">Provider Appointments - Coming Soon</div>} />
-        <Route path="medical-records" element={<div className="p-8">Provider Records - Coming Soon</div>} />
-        <Route path="prescriptions" element={<div className="p-8">Provider Prescriptions - Coming Soon</div>} />
+        <Route path="appointments" element={<ProviderWorkspacePage view="appointments" />} />
+        <Route path="medical-records" element={<ProviderWorkspacePage view="records" />} />
+        <Route path="prescriptions" element={<ProviderWorkspacePage view="prescriptions" />} />
         <Route path="insurance" element={<div className="p-8">Provider Insurance - Coming Soon</div>} />
         <Route path="profile" element={<div className="p-8">Provider Profile - Coming Soon</div>} />
         <Route path="settings" element={<div className="p-8">Provider Settings - Coming Soon</div>} />
@@ -167,4 +172,3 @@ export const AppRoutes: React.FC = () => {
     </Routes>
   );
 };
-

@@ -98,6 +98,17 @@ export const AppointmentDetailPage: React.FC = () => {
           </div>
         </div>
 
+        {appointment.status === 'COMPLETED' && appointment.consultation && (
+          <div className="space-y-3 rounded-xl p-4 bg-teal-50 dark:bg-teal-950 border border-teal-200 dark:border-teal-900">
+            <h3 className="font-bold">Completed Demo Consultation</h3>
+            <p className="text-sm whitespace-pre-wrap">{appointment.consultation.notes}</p>
+            {appointment.consultation.prescription && <div>
+              <h4 className="text-sm font-bold">Demo prescription text</h4>
+              <p className="text-sm whitespace-pre-wrap mt-1">{appointment.consultation.prescription}</p>
+            </div>}
+            <p className="text-xs text-slate-500">Simulated consultation. Prescription text is not signed or valid for medication dispensing.</p>
+          </div>
+        )}
         {/* Reason for Visit */}
         {appointment.reasonForVisit && (
           <div className="space-y-1.5">
@@ -139,7 +150,7 @@ export const AppointmentDetailPage: React.FC = () => {
         <div className="border-t border-slate-100 dark:border-slate-800 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400 transition-colors">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
-            <span>Consultation Fee: $120.00 • Paid via HealthConnect Insurance Direct</span>
+            <span>Consultation Fee: $120.00  Paid via HealthConnect Insurance Direct</span>
           </div>
           <Button
             variant="outline"

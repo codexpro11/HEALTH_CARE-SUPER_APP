@@ -7,7 +7,7 @@ import { mockAppointments, mockDoctors } from '../data/mockData';
 
 const APPOINTMENTS_STORAGE_KEY = 'hc_user_appointments';
 
-function getStoredAppointments(): Appointment[] {
+export function getStoredAppointments(): Appointment[] {
   try {
     const saved = localStorage.getItem(demoStorageKey(APPOINTMENTS_STORAGE_KEY));
     if (saved) return JSON.parse(saved);
@@ -22,7 +22,7 @@ function getStoredAppointments(): Appointment[] {
   }));
 }
 
-function saveStoredAppointments(list: Appointment[]) {
+export function saveStoredAppointments(list: Appointment[]) {
   try {
     localStorage.setItem(demoStorageKey(APPOINTMENTS_STORAGE_KEY), JSON.stringify(list));
   } catch {
@@ -119,6 +119,7 @@ export const appointmentApi = {
         const list = getStoredAppointments();
         const idx = list.findIndex((a) => a.id === id);
         if (idx === -1) throw new Error('Appointment not found');
+        if (!['BOOKED', 'CONFIRMED'].includes(list[idx].status)) throw new Error('Only booked or confirmed appointments can be rescheduled.');
         const doctor = mockDoctors.find(item => item.id === list[idx].doctorId);
         if (!doctor || !availableTimes(demoSchedule(doctor), updates.slotDate).includes(updates.slotTime)) throw new Error('Choose an available doctor slot.');
         if (list.some(item => item.id !== id && item.doctorId === list[idx].doctorId && item.appointmentDate === updates.slotDate && item.appointmentTime === updates.slotTime && ['BOOKED', 'CONFIRMED', 'IN_PROGRESS'].includes(item.status))) throw new Error('This slot is already booked. Choose another time.');
@@ -144,6 +145,7 @@ export const appointmentApi = {
         const list = getStoredAppointments();
         const idx = list.findIndex((a) => a.id === id);
         if (idx === -1) throw new Error('Appointment not found');
+        if (!['BOOKED', 'CONFIRMED'].includes(list[idx].status)) throw new Error('This appointment can no longer be cancelled.');
         const updatedItem: Appointment = {
           ...list[idx],
           status: 'CANCELLED',

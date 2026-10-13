@@ -7,7 +7,7 @@ import { mockMedicalRecords, mockPrescriptions, mockProviderConsents } from '../
 const RECORDS_STORAGE_KEY = 'hc_user_records';
 const CONSENTS_STORAGE_KEY = 'hc_user_consents';
 
-function getStoredRecords(): MedicalRecord[] {
+export function getStoredRecords(): MedicalRecord[] {
   try {
     const saved = localStorage.getItem(demoStorageKey(RECORDS_STORAGE_KEY));
     if (saved) return JSON.parse(saved);
