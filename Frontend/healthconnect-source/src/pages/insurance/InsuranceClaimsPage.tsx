@@ -31,7 +31,7 @@ export const InsuranceClaimsPage: React.FC = () => {
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <Input label="Search Claims" value={search} onChange={event => setSearch(event.target.value)} placeholder="Claim ID or hospital" />
       <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Filter Claim Status
-        <select className="block w-full mt-2 p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-sm" value={status} onChange={event => setStatus(event.target.value)}>
+        <select aria-label="Filter Claim Status" className="block w-full mt-2 p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-sm" value={status} onChange={event => setStatus(event.target.value)}>
           {['ALL', 'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'PARTIALLY_APPROVED', 'REJECTED', 'SETTLED'].map(value => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}
         </select>
       </label>

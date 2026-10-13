@@ -27,7 +27,7 @@ export function PolicyForm({ policy, onSaved }: { policy?: InsurancePolicy; onSa
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'Policy was not saved.'); }
     finally { setBusy(false); }
   };
-  return <form onSubmit={submit} className="space-y-4">
+  return <form onSubmit={submit} className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
     <p className="text-xs text-slate-500">Use sample information. This demo does not verify or link an insurer account.</p>
     {error && <p role="alert" className="p-3 rounded-xl bg-rose-50 text-rose-800 text-sm">{error}</p>}
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -37,14 +37,14 @@ export function PolicyForm({ policy, onSaved }: { policy?: InsurancePolicy; onSa
       <Input label="Member ID" required maxLength={100} value={form.memberId} onChange={event => change('memberId', event.target.value)} />
       <Input label="Sum Insured" type="number" required step="0.01" value={form.coverage} onChange={event => change('coverage', event.target.value)} />
       <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Currency
-        <select className={fieldClass} value={form.currency} onChange={event => change('currency', event.target.value)}>
+        <select aria-label="Currency" className={fieldClass} value={form.currency} onChange={event => change('currency', event.target.value)}>
           <option value="INR">INR — Indian Rupee</option><option value="USD">USD — US Dollar</option>
         </select>
       </label>
       <Input label="Policy Start Date" type="date" required value={form.startDate} onChange={event => change('startDate', event.target.value)} />
       <Input label="Policy End Date" type="date" required value={form.endDate} onChange={event => change('endDate', event.target.value)} />
       <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Policy Status
-        <select className={fieldClass} value={form.status} onChange={event => change('status', event.target.value)}>
+        <select aria-label="Policy Status" className={fieldClass} value={form.status} onChange={event => change('status', event.target.value)}>
           <option value="ACTIVE">Active</option><option value="PENDING">Pending</option><option value="CANCELLED">Cancelled</option>
           {form.status === 'EXPIRED' && <option value="EXPIRED">Expired</option>}
         </select>
@@ -74,11 +74,11 @@ export function ClaimForm({ policies, claim, onSaved }: { policies: InsurancePol
     catch (failure) { setError(failure instanceof Error ? failure.message : 'Draft was not saved.'); }
     finally { setBusy(false); }
   };
-  return <form onSubmit={submit} className="space-y-4">
+  return <form onSubmit={submit} className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
     <p className="text-xs text-slate-500">Save a draft, attach supporting documents, then submit it to the demo workflow.</p>
     {error && <p role="alert" className="p-3 rounded-xl bg-rose-50 text-rose-800 text-sm">{error}</p>}
     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Claim Policy
-      <select className={fieldClass} required value={form.policyId} onChange={event => setForm(current => ({ ...current, policyId: event.target.value, amount: '' }))}>
+      <select aria-label="Claim Policy" className={fieldClass} required value={form.policyId} onChange={event => setForm(current => ({ ...current, policyId: event.target.value, amount: '' }))}>
         <option value="">Select a policy</option>
         {policies.map(policy => <option key={policy.id} value={policy.id}>{policy.provider} — {policy.plan} ({policy.currency})</option>)}
       </select>
@@ -88,7 +88,7 @@ export function ClaimForm({ policies, claim, onSaved }: { policies: InsurancePol
       <Input label={'Claim Amount' + (selected ? ' (' + selected.currency + ')' : '')} type="number" required step="0.01" value={form.amount} onChange={event => change('amount', event.target.value)} />
       <Input label="Service Date" type="date" required value={form.date} onChange={event => change('date', event.target.value)} />
       <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Claim Type
-        <select className={fieldClass} value={form.type} onChange={event => change('type', event.target.value)}>
+        <select aria-label="Claim Type" className={fieldClass} value={form.type} onChange={event => change('type', event.target.value)}>
           <option value="Reimbursement">Reimbursement</option><option value="Cashless">Cashless</option>
         </select>
       </label>

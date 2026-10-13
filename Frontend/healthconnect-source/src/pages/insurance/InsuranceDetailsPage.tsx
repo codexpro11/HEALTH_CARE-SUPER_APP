@@ -52,6 +52,7 @@ export const InsuranceDetailsPage: React.FC = () => {
         <div><p className="text-xs font-bold uppercase text-slate-500 mb-1">Valid From</p><p>{policy.startDate}</p></div>
         <div><p className="text-xs font-bold uppercase text-slate-500 mb-1">Valid Till</p><p>{policy.endDate}</p></div>
       </div>
+      <p className="px-6 pb-4 text-sm font-bold">Sum insured: {formatMoney(policy.coverage, policy.currency)}</p>
       <div className="px-6 pb-6 flex flex-wrap gap-2">
         <Button variant="outline" onClick={() => setEditing(true)} disabled={busy}>Edit Policy</Button>
         <Button variant="outline" onClick={downloadSummary}>Download Demo Summary</Button>
