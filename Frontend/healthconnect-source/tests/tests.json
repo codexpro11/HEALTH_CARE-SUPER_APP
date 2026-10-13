@@ -1,0 +1,171 @@
+[
+  {
+    "name": "Sign in, save profile and verify access boundaries",
+    "sanity": true,
+    "viewport": "desktop",
+    "covers": [
+      "demo sign-in and sign-out",
+      "protected patient routes",
+      "patient/provider role boundary",
+      "profile persistence",
+      "settings persistence",
+      "notifications read state",
+      "password reset and registration navigation",
+      "provider blocked from patient routes",
+      "unsupported role workspace",
+      "insurance account isolation",
+      "foreign policy and claim route denial"
+    ],
+    "description": "Verifies a patient can save personal changes and protected data requires a demo session.",
+    "steps": [
+      "Open #/app/profile in a fresh session and verify redirection to sign-in.",
+      "Use the prefilled demo Sign In. Open #/app/profile, change Full Name to Demo Restore Patient, save and reload.",
+      "Open #/app/settings, change SMS preference, save and reload.",
+      "Open notifications and mark available unread notifications read.",
+      "Open #/provider/nfc-scanner as a patient and verify redirection to the patient dashboard.",
+      "Sign out, verify protected pages require sign-in, then open Forgot password and Create account forms.",
+      "Before signing out, note a newly created policy and claim URL. Sign in as a different demo account and open those URLs; verify Policy unavailable and Claim unavailable."
+    ],
+    "expected": "Profile and saved preferences survive reload; notifications update visibly; anonymous and patient provider-route access are denied; authentication forms are reachable."
+  },
+  {
+    "name": "Find a doctor, book and cancel an appointment",
+    "viewport": "desktop",
+    "covers": [
+      "dashboard quick actions",
+      "doctor search and filters",
+      "doctor details",
+      "booking and appointment detail",
+      "booking validation",
+      "cancellation confirmation",
+      "prescription list",
+      "empty/error preview recovery"
+    ],
+    "description": "Verifies the original care-booking workflow and catalog recovery states.",
+    "steps": [
+      "Sign in with the prefilled demo credentials.",
+      "Search doctors for Evelyn, open the profile, book a future available appointment, and view it in appointments.",
+      "Cancel that booking using the confirmation dialog, then check its cancelled status.",
+      "Open prescriptions and inspect an available prescription.",
+      "In settings select Error preview scenario; open doctors and verify visible failure with Retry. Select Empty and verify no doctors, then restore Success and verify the catalog returns."
+    ],
+    "expected": "Doctor filtering and profile work; the confirmed appointment appears and cancellation updates its status; prescriptions render; preview error and empty states are visible and recover when Success is restored."
+  },
+  {
+    "name": "Manage records, insurance policies, documents and claims",
+    "viewport": "desktop",
+    "covers": [
+      "record PDF upload and validation",
+      "record preview/download/persistence",
+      "consent revocation confirmation",
+      "insurance policy create/edit/delete",
+      "policy date/amount/duplicate validation",
+      "policy document preview/download/delete persistence",
+      "draft claim creation/edit/deletion",
+      "claim amount/service-date validation",
+      "claim submission and immutable submitted documents",
+      "simulated review/partial approval/rejection/settlement",
+      "claim timeline persistence",
+      "claim search/status filters",
+      "policy/claim ownership and unknown-ID denial"
+    ],
+    "description": "Verifies the new insurance workflows and the existing private document experience retain durable per-account state.",
+    "steps": [
+      "Sign in as insurance.qa@healthconnect.example with sample credentials. In Medical Records upload a real PDF under 10 MB, preview, download and reload; reject a TXT file.",
+      "Open Insurance, Add Policy with sample provider, plan, identifiers, INR currency and a current valid policy period. Try zero sum insured and reversed dates, verify errors preserve input, correct them and save.",
+      "Reload the policy details; verify identifiers are masked. Edit the plan and coverage notes and save. Try adding the same provider and policy number again and verify the duplicate is rejected.",
+      "Upload a real policy PDF under 10 MB; reject a TXT file, preview the valid PDF, download it and reload to verify the file persists. Remove the PDF with confirmation and verify it stays absent after reload.",
+      "Open Claims, New Claim for the new policy. Reject an amount above the sum insured or a service date outside the policy period; correct fields and save a draft. Edit its description and attach a real PDF.",
+      "Submit the demo claim with confirmation. Verify fields and uploaded documents become read-only. Simulate Review, try a partial approval equal to the claim amount and verify rejection, enter a valid smaller amount and apply it.",
+      "Simulate Settlement and reload; verify settled status, approved amount and persistent status timeline. Try deleting its policy and changing its currency; verify both are blocked.",
+      "Create another draft, submit and review it. Simulate Rejection, verify a short reason is rejected and a valid reason is recorded. Create a third draft and delete it with confirmation, then search for its hospital and verify no matches.",
+      "Open nonexistent policy and claim IDs and verify unavailable states with no sample fallback. In Consent cancel a revoke confirmation and verify permissions remain active."
+    ],
+    "expected": "Valid policies, files and claim changes survive reload; invalid writes are blocked without losing form input; original file download works; submitted claims are immutable; deletion/currency/reference rules prevent inconsistent state; unavailable identifiers show no unrelated data."
+  },
+  {
+    "name": "Use mobile pharmacy, diagnostics, directory and SOS",
+    "viewport": "mobile",
+    "covers": [
+      "mobile menu and bottom navigation",
+      "pharmacy search and cart quantity",
+      "checkout and order history",
+      "diagnostics catalog and booking",
+      "hospital and blood bank directories",
+      "SOS activation confirmation",
+      "simulated dispatch tracking",
+      "SOS cancellation",
+      "mobile insurance form and policy deletion",
+      "insurance empty/error recovery",
+      "mobile phase progress comparison"
+    ],
+    "description": "Verifies core service workflows and restored emergency controls at mobile width.",
+    "steps": [
+      "Sign in, open the mobile menu and navigate to pharmacy. Search a medicine, add it to cart, adjust quantity, complete demo checkout with sample information and view orders.",
+      "Open diagnostics, select a test and complete the demo booking using a future date.",
+      "Open hospitals and blood banks and use their search or filters.",
+      "Open #/app/emergency, activate SOS and confirm the demo emergency request. Verify the simulated dispatch/tracking view, then cancel SOS.",
+      "On mobile open Insurance, create a sample unused policy, then delete it with confirmation and reload. Verify it remains absent; select Error and Empty preview scenarios in Settings to verify insurance errors and empty states, then return to Success.",
+      "Open Phases & Changes from the mobile patient menu; verify the current phase and horizontally scrollable Before/After table are usable."
+    ],
+    "expected": "Mobile controls remain usable; cart and order state update; diagnostics booking appears; directories filter; SOS requires confirmation, shows simulated dispatch and returns to idle after cancellation."
+  },
+  {
+    "name": "NFC card lifecycle, consent and provider authorization",
+    "viewport": "desktop",
+    "covers": [
+      "account-scoped card persistence",
+      "NFC issuance revocation and replacement",
+      "identifier-only provisioning demo",
+      "access history",
+      "patient/provider/unsupported-role boundaries",
+      "direct and wrong-patient summary denial",
+      "hospital association verification",
+      "active and expired credential checks",
+      "consent revocation and scope changes",
+      "limited emergency reason and expiry",
+      "account isolation",
+      "NFC active masked insurance summaries",
+      "insurance files and claims excluded from provider view"
+    ],
+    "description": "Verifies the completed NFC demo phase enforces visible access boundaries and durable card/consent state.",
+    "steps": [
+      "Sign in as nfc.qa@healthconnect.example using sample credentials. As patient, attempt a provider summary URL and verify redirection to the patient dashboard.",
+      "Open NFC Card, revoke with confirmation, reload and verify REVOKED; activate a new card, then replace it with confirmation and verify the masked identifier changes. Simulate provisioning and verify the completion notice.",
+      "Select DOCTOR in the sidebar role switch. Open #/provider/nfc/summary/PT-1002 before scanning and verify access denied with no patient details.",
+      "Return to scanner, scan using Authorized hospital and verify the summary. Try a different patient ID URL and verify denial. Try a patient medical-records URL as provider and verify redirection to scanner.",
+      "On scanner choose Wrong hospital and Provider without hospital association in separate attempts; verify access denied. Try Unknown or replaced card and verify denial.",
+      "Return to Patient Demo, revoke provider consent, reload and verify Revoked. Switch to DOCTOR and verify scanning is denied. Return to patient, use Manage Access to grant Basic Profile only; scan again and verify no insurance or medical summary content is shown.",
+      "Open Emergency Override, verify authorization disabled for empty and short reasons; enter a reason of at least ten characters, authorize and verify emergency scope excludes insurance and full medical records.",
+      "Return to patient and inspect granted/denied NFC access history. Sign out and sign in as nfc.other@healthconnect.example; verify this account has no prior access attempts and its own card.",
+      "Create an active sample insurance policy as patient. Scan as DOCTOR with Insurance scope and verify its masked summary appears without documents, full identifiers or claim details. Remove the Insurance consent scope and rescan; verify insurance content is absent."
+    ],
+    "expected": "Card and consent changes survive reload; grants invalidate when permissions or cards change; unauthorized routes, unknown cards and wrong facilities show no patient details; only consented or limited emergency scopes render; activity stays within the demo account."
+  },
+  {
+    "name": "Doctor consultation, patient summary and scoped records",
+    "viewport": "desktop",
+    "covers": [
+      "provider dashboard and patient queue",
+      "doctor assignment/account isolation",
+      "provider appointment status transitions",
+      "consultation draft persistence and completion locking",
+      "patient completed consultation summary",
+      "demo prescription list",
+      "standard NFC record scope and revocation",
+      "doctor-only clinical actions",
+      "phase roadmap and before/after comparison"
+    ],
+    "description": "Verifies provider workflows persist across refresh, appear to the paired patient, and require the correct role and record consent.",
+    "steps": [
+      "Sign in as provider.deploy.qa@healthconnect.example with demo credentials. As patient open provider appointments and verify redirection to the patient dashboard.",
+      "Use the sidebar Role: PATIENT switch to select DOCTOR. Open provider Dashboard and verify appointment totals. Open Phases & Changes and verify Phase 2 current, six required phases after it, and Before/After columns.",
+      "Open provider Appointments, select Dr. Evelyn Reed and the CONFIRMED filter. Open an assigned appointment, Start Consultation, enter notes longer than ten characters and optional demo prescription text, Save Consultation Draft, and reload to verify persistence.",
+      "Complete Demo Consultation with confirmation and reload. Verify notes and prescription fields are disabled. Open provider Prescriptions and verify the saved demo text. Open /provider/appointments/not-this-account and verify Appointment unavailable.",
+      "Open provider Medical Records before scanning and verify Patient access required. Open the NFC scanner, perform an Authorized hospital standard scan, then open provider Medical Records and verify only standard scoped summaries without attachment links.",
+      "Return to Patient Demo, open the same completed appointment and verify Completed Demo Consultation and its saved text. Revoke the first provider consent with confirmation, switch back to DOCTOR and verify protected record access is denied.",
+      "Return to Patient Demo, select HOSPITAL role and open provider Appointments; verify Doctor access required."
+    ],
+    "expected": "The same consultation survives reload and appears in the paired patient appointment after completion; completed visits cannot be edited; foreign IDs, wrong roles and absent/revoked consent deny access. The progress page shows current phase and side-by-side changes."
+  }
+]

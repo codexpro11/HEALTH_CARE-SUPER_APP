@@ -26,6 +26,7 @@ export const ProviderLayout: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigationItems = [
+    { name: 'Phases & Changes', path: '/provider/progress', icon: FileText },
     { name: 'Dashboard', path: '/provider/dashboard', icon: Activity },
     { name: 'Patients', path: '/provider/patients', icon: Users },
     { name: 'NFC Scanner', path: '/provider/nfc-scanner', icon: Scan },

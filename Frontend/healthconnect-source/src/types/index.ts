@@ -145,6 +145,8 @@ export interface Appointment {
   meetingLink?: string;
   roomNumber?: string;
   notes?: string;
+  consultation?: { notes: string; prescription: string; updatedAt: string };
+  providerTimeline?: { status: AppointmentStatus; at: string }[];
   createdAt: string;
   updatedAt?: string;
 }
