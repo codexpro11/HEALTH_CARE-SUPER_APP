@@ -38,6 +38,7 @@ import { ConsentManagementPage } from '../pages/consent/ConsentManagementPage';
 import { InsuranceDashboardPage } from '../pages/insurance/InsuranceDashboardPage';
 import { InsuranceDetailsPage } from '../pages/insurance/InsuranceDetailsPage';
 import { InsuranceClaimsPage } from '../pages/insurance/InsuranceClaimsPage';
+import { InsuranceClaimDetailsPage } from '../pages/insurance/InsuranceClaimDetailsPage';
 
 // Provider Features
 import { ProviderNfcScannerPage } from '../pages/provider/nfc/ProviderNfcScannerPage';
@@ -123,6 +124,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="consent" element={<ConsentManagementPage />} />
         <Route path="insurance" element={<InsuranceDashboardPage />} />
         <Route path="insurance/claims" element={<InsuranceClaimsPage />} />
+        <Route path="insurance/claims/:id" element={<InsuranceClaimDetailsPage />} />
         <Route path="insurance/:id" element={<InsuranceDetailsPage />} />
         <Route path="medical-records" element={<MedicalRecordListPage />} />
         <Route path="prescriptions" element={<PrescriptionListPage />} />

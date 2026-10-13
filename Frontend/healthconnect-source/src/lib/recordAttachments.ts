@@ -63,3 +63,14 @@ export async function readDemoRecordAttachment(key: string): Promise<Blob | null
     };
   });
 }
+
+export async function deleteDemoRecordAttachment(key: string): Promise<void> {
+  const database = await openAttachmentDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(STORE_NAME, 'readwrite');
+    transaction.objectStore(STORE_NAME).delete(key);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(new Error('The document could not be removed from this browser.'));
+    transaction.onabort = () => reject(new Error('The document could not be removed from this browser.'));
+  }).finally(() => database.close());
+}
