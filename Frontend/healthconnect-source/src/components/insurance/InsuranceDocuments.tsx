@@ -11,7 +11,7 @@ export function InsuranceDocuments({ kind, parentId, documents, editable = true 
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
-  const [preview, setPreview] = useState<{ url: string; name: string; type: string } | null>(null);
+  const [preview, setPreview] = useState<{ id: string; url: string; name: string; type: string } | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
@@ -31,7 +31,7 @@ export function InsuranceDocuments({ kind, parentId, documents, editable = true 
   const view = (id: string) => run(async () => {
     const { document, blob } = await readInsuranceDocument(kind, parentId, id);
     if (!mounted.current) return;
-    setPreview({ url: URL.createObjectURL(blob), name: document.name, type: document.type });
+    setPreview({ id: document.id, url: URL.createObjectURL(blob), name: document.name, type: document.type });
   });
   const download = (id: string) => run(async () => {
     const { document, blob } = await readInsuranceDocument(kind, parentId, id);
@@ -69,8 +69,13 @@ export function InsuranceDocuments({ kind, parentId, documents, editable = true 
         </div>
       </li>)}</ul>}
     <Modal isOpen={!!preview} onClose={() => setPreview(null)} title={preview?.name ?? 'Document Preview'} maxWidth="lg">
+      {error && <p role="alert" className="text-sm text-rose-700 mb-3">{error}</p>}
+      {preview?.type === 'application/pdf' && <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <p className="text-xs text-slate-500">PDF preview uses your browser's viewer. Download if it is unavailable.</p>
+        <Button variant="outline" size="sm" onClick={() => download(preview.id)} disabled={busy}>Download Document</Button>
+      </div>}
       {preview && (preview.type === 'application/pdf' ?
-        <iframe title={preview.name} src={preview.url} sandbox="" className="w-full h-[60vh] border-0" /> :
+        <iframe title={preview.name} src={preview.url} className="w-full h-[60vh] border-0" /> :
         <img src={preview.url} alt={preview.name} className="max-h-[60vh] mx-auto object-contain" />)}
     </Modal>
   </Card>;
