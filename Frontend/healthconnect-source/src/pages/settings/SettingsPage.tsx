@@ -1,217 +1,89 @@
 import React, { useState } from 'react';
-import {
-  Settings,
-  Bell,
-  Lock,
-  Server,
-  Database,
-  ShieldCheck,
-  Smartphone,
-  Download,
-  Trash2,
-  CheckCircle2,
-  RefreshCw,
-} from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../auth/AuthContext';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
+import { isDemoMode, readStored, writeStored, settingsKey, getDemoScenario, clearDemoData } from '../../lib/demo';
+import type { DemoScenario } from '../../lib/request';
+import { errorMessage } from '../../lib/request';
+import type { UserRole } from '../../types';
+
+interface Preferences { email: boolean; sms: boolean; push: boolean; }
+const defaults: Preferences = { email: true, sms: false, push: true };
 
 export const SettingsPage: React.FC = () => {
-  const [emailNotifs, setEmailNotifs] = useState(true);
-  const [smsNotifs, setSmsNotifs] = useState(true);
-  const [pushNotifs, setPushNotifs] = useState(true);
-  const [twoFactorAuth, setTwoFactorAuth] = useState(true);
-  const [savedSuccess, setSavedSuccess] = useState(false);
-
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+  const { user, role, switchRole } = useAuth();
+  const key = settingsKey(user?.id ?? 'guest');
+  const [preferences, setPreferences] = useState(() => readStored(key, defaults));
+  const [scenario, setScenario] = useState<DemoScenario>(getDemoScenario);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
 
   const handleSave = () => {
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 2000);
+    setMessage('');
+    setError('');
+    try {
+      writeStored(key, preferences);
+      setMessage('Preferences saved in this browser. Delivery of messages is not enabled by these switches.');
+    } catch (failure) { setError(errorMessage(failure)); }
   };
 
-  const handleClearCache = () => {
-    localStorage.clear();
-    window.location.reload();
+  const changeScenario = (value: DemoScenario) => {
+    try {
+      writeStored('hc_demo_scenario', value);
+      setScenario(value);
+      setError('');
+      void queryClient.resetQueries();
+    } catch (failure) { setError(errorMessage(failure)); }
+  };
+
+  const resetDemo = () => {
+    if (!window.confirm('Reset the sample session, preferences and demo records in this browser?')) return;
+    try {
+      clearDemoData();
+      window.location.assign('/login');
+    } catch (failure) { setError(errorMessage(failure)); }
   };
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-          System Settings & Integrations
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Configure security protocols, alert channels, and monitor Spring Boot REST API connectivity.
-        </p>
-      </div>
-
-      {savedSuccess && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-2 text-xs text-emerald-800 font-semibold">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>Settings saved successfully.</span>
-        </div>
-      )}
-
-      {/* Backend Integration Diagnostics Panel (Spring Boot REST API) */}
-      <Card className="p-6 border-teal-200 bg-teal-50/30 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-teal-100">
-          <div className="flex items-center gap-2.5">
-            <Server className="w-5 h-5 text-teal-700" />
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Backend REST API Integration Status
-              </h3>
-              <p className="text-xs text-slate-500">
-                Java 21+ Spring Boot Enterprise Backend Bridge
-              </p>
-            </div>
-          </div>
-          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            API Bridge Active (Development Fallback Enabled)
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-          <div className="p-3 bg-white border border-teal-100 rounded-xl space-y-1">
-            <span className="text-slate-400 block font-bold text-[10px] uppercase">Base Endpoint</span>
-            <span className="font-mono text-slate-800 text-xs break-all">{apiBaseUrl}</span>
-          </div>
-
-          <div className="p-3 bg-white border border-teal-100 rounded-xl space-y-1">
-            <span className="text-slate-400 block font-bold text-[10px] uppercase">Authentication Flow</span>
-            <span className="text-slate-800 text-xs font-semibold">
-              JWT Bearer with Auto-Refresh Interceptor
-            </span>
-          </div>
-        </div>
-
-        <p className="text-[11px] text-slate-500">
-          All endpoints in HealthConnect are constructed to communicate with your separate Spring Boot backend. When unreachable, the application smoothly engages client-side clinical fallbacks to ensure full offline review and test capability.
-        </p>
-      </Card>
-
-      {/* Communication Preferences */}
+      <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Settings</h1>
+      {message && <p role="status" className="text-sm text-emerald-700">{message}</p>}
+      {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
       <Card className="p-6 space-y-4">
-        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center gap-2">
-          <Bell className="w-4 h-4 text-teal-600" />
-          <span>Notification & Dispatch Channels</span>
-        </h3>
-
-        <div className="space-y-3">
-          <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
-            <div>
-              <p className="text-xs font-bold text-slate-900">Critical SMS Alerts</p>
-              <p className="text-[11px] text-slate-500">
-                Receive instant SMS notifications for appointment changes and emergency responses.
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={smsNotifs}
-              onChange={(e) => setSmsNotifs(e.target.checked)}
-              className="w-4 h-4 text-teal-600 rounded border-slate-300 focus:ring-teal-500"
-            />
+        <h2 className="font-semibold">Notification preferences</h2>
+        <p className="text-sm text-slate-500">These preferences are stored on this device.</p>
+        {(['email', 'sms', 'push'] as const).map(channel => (
+          <label key={channel} className="flex items-center justify-between gap-3 py-2">
+            <span>{channel === 'sms' ? 'SMS' : channel === 'email' ? 'Email' : 'Push notifications'}</span>
+            <input type="checkbox" checked={preferences[channel]} onChange={event => {
+              setMessage('');
+              setPreferences(current => ({ ...current, [channel]: event.target.checked }));
+            }} />
           </label>
-
-          <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
-            <div>
-              <p className="text-xs font-bold text-slate-900">Email Clinical Reports</p>
-              <p className="text-[11px] text-slate-500">
-                Receive PDF e-prescriptions and verified diagnostic reports via encrypted email.
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={emailNotifs}
-              onChange={(e) => setEmailNotifs(e.target.checked)}
-              className="w-4 h-4 text-teal-600 rounded border-slate-300 focus:ring-teal-500"
-            />
-          </label>
-
-          <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
-            <div>
-              <p className="text-xs font-bold text-slate-900">In-App Push Notifications</p>
-              <p className="text-[11px] text-slate-500">
-                Live doctor video room ready notifications and medication reminders.
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={pushNotifs}
-              onChange={(e) => setPushNotifs(e.target.checked)}
-              className="w-4 h-4 text-teal-600 rounded border-slate-300 focus:ring-teal-500"
-            />
-          </label>
-        </div>
+        ))}
+        <Button onClick={handleSave}>Save preferences</Button>
       </Card>
-
-      {/* Security & Data Privacy Card */}
-      <Card className="p-6 space-y-4">
-        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center gap-2">
-          <Lock className="w-4 h-4 text-teal-600" />
-          <span>Security & HIPAA Governance</span>
-        </h3>
-
-        <div className="space-y-3">
-          <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
-            <div>
-              <p className="text-xs font-bold text-slate-900">Two-Factor Authentication (2FA)</p>
-              <p className="text-[11px] text-slate-500">
-                Require biometric or SMS verification for sensitive medical record access.
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={twoFactorAuth}
-              onChange={(e) => setTwoFactorAuth(e.target.checked)}
-              className="w-4 h-4 text-teal-600 rounded border-slate-300 focus:ring-teal-500"
-            />
-          </label>
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-xl border border-slate-200 gap-3">
-            <div>
-              <p className="text-xs font-bold text-slate-900">Export Clinical Data Archive</p>
-              <p className="text-[11px] text-slate-500">
-                Download all medical records, consultation notes, and prescriptions in standard FHIR JSON format.
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<Download className="w-3.5 h-3.5" />}
-              onClick={() => alert('Preparing HIPAA compliant patient data archive...')}
-            >
-              Export
-            </Button>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-xl border border-rose-100 bg-rose-50/40 gap-3">
-            <div>
-              <p className="text-xs font-bold text-rose-900">Reset Local Session & Cache</p>
-              <p className="text-[11px] text-rose-700">
-                Clear all active demo state, cart contents, and stored tokens from browser memory.
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-rose-300 text-rose-700 hover:bg-rose-100"
-              leftIcon={<Trash2 className="w-3.5 h-3.5" />}
-              onClick={handleClearCache}
-            >
-              Reset Cache
-            </Button>
-          </div>
-        </div>
-      </Card>
-
-      <div className="flex justify-end pt-2">
-        <Button variant="primary" onClick={handleSave}>
-          Save Settings
-        </Button>
-      </div>
+      {isDemoMode && <Card className="p-6 space-y-4">
+        <h2 className="font-semibold">Demo preview</h2>
+        <p className="text-sm text-slate-500">Bookings and records use fictional browser data. No API calls or payments are made.</p>
+        <label className="block space-y-2">
+          <span>Preview scenario</span>
+          <select className="block w-full rounded-lg border p-2 dark:bg-slate-900" value={scenario} onChange={event => changeScenario(event.target.value as DemoScenario)}>
+            <option value="success">Success</option>
+            <option value="error">Request failure</option>
+            <option value="empty">Empty lists</option>
+          </select>
+        </label>
+        <label className="block space-y-2">
+          <span>Demo role</span>
+          <select className="block w-full rounded-lg border p-2 dark:bg-slate-900" value={role} onChange={event => switchRole(event.target.value as UserRole)}>
+            {['PATIENT', 'DOCTOR', 'HOSPITAL', 'ADMIN'].map(value => <option key={value}>{value}</option>)}
+          </select>
+        </label>
+        <Button variant="outline" onClick={resetDemo}>Reset demo data</Button>
+      </Card>}
     </div>
   );
 };

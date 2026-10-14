@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Plus, RotateCcw, XCircle, AlertCircle, Video } from 'lucide-react';
+import { doctorApi } from '../../api/doctorApi';
+import { availableTimes, dateAfterDays, localDate, validateBooking } from '../../lib/frontend';
+import { errorMessage } from '../../lib/request';
 import { appointmentApi } from '../../api/appointmentApi';
 import { Appointment, AppointmentStatus } from '../../types';
 import { AppointmentCard } from '../../components/appointments/AppointmentCard';
@@ -16,8 +19,8 @@ import { ErrorState } from '../../components/common/ErrorState';
 export const AppointmentListPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'UPCOMING' | 'COMPLETED' | 'CANCELLED'>('UPCOMING');
   const [rescheduleApt, setRescheduleApt] = useState<Appointment | null>(null);
-  const [newDate, setNewDate] = useState('2026-09-18');
-  const [newTime, setNewTime] = useState('02:00 PM');
+  const [newDate, setNewDate] = useState(() => dateAfterDays(1));
+  const [newTime, setNewTime] = useState('');
   const [cancelApt, setCancelApt] = useState<Appointment | null>(null);
 
   const queryClient = useQueryClient();
@@ -32,6 +35,13 @@ export const AppointmentListPage: React.FC = () => {
   });
 
   const appointments = response?.data || [];
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const { data: doctorResponse, isLoading: loadingSlots, error: slotError } = useQuery({
+    queryKey: ['doctor', rescheduleApt?.doctorId],
+    queryFn: () => doctorApi.getDoctorById(rescheduleApt!.doctorId),
+    enabled: !!rescheduleApt,
+  });
+  const rescheduleTimes = doctorResponse ? availableTimes(doctorResponse.data, newDate) : [];
 
   const rescheduleMutation = useMutation({
     mutationFn: (variables: { id: string; date: string; time: string }) =>
@@ -129,8 +139,14 @@ export const AppointmentListPage: React.FC = () => {
               key={apt.id}
               appointment={apt}
               onViewDetails={(a) => navigate(`/app/appointments/${a.id}`)}
-              onReschedule={(a) => setRescheduleApt(a)}
-              onCancel={(a) => setCancelApt(a)}
+              onReschedule={(a) => {
+                setRescheduleApt(a);
+                setNewDate(dateAfterDays(1));
+                setNewTime('');
+                setValidationError(null);
+                rescheduleMutation.reset();
+              }}
+              onCancel={(a) => { cancelMutation.reset(); setCancelApt(a); }}
             />
           ))}
         </div>
@@ -152,12 +168,14 @@ export const AppointmentListPage: React.FC = () => {
               </p>
             </div>
 
+            {(validationError || rescheduleMutation.isError || slotError) && <p role="alert" className="text-sm text-rose-700">{validationError || errorMessage(slotError || rescheduleMutation.error)}</p>}
+            {!loadingSlots && !slotError && rescheduleTimes.length === 0 && <p className="text-sm text-amber-700">No slots on this date. Choose another day.</p>}
             <Input
               label="New Appointment Date"
               type="date"
               value={newDate}
-              min={new Date().toISOString().split('T')[0]}
-              onChange={(e) => setNewDate(e.target.value)}
+              min={localDate()}
+              onChange={(e) => { setNewDate(e.target.value); setNewTime(''); setValidationError(null); rescheduleMutation.reset(); }}
               required
             />
 
@@ -165,12 +183,7 @@ export const AppointmentListPage: React.FC = () => {
               label="New Time Slot"
               value={newTime}
               onChange={(e) => setNewTime(e.target.value)}
-              options={[
-                { value: '09:00 AM', label: '09:00 AM' },
-                { value: '11:30 AM', label: '11:30 AM' },
-                { value: '02:00 PM', label: '02:00 PM' },
-                { value: '04:30 PM', label: '04:30 PM' },
-              ]}
+              options={[{ value: '', label: loadingSlots ? 'Loading slots...' : 'Choose a time slot' }, ...rescheduleTimes.map(time => ({ value: time, label: time }))]}
             />
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800 transition-colors">
@@ -180,13 +193,13 @@ export const AppointmentListPage: React.FC = () => {
               <Button
                 variant="primary"
                 isLoading={rescheduleMutation.isPending}
-                onClick={() =>
-                  rescheduleMutation.mutate({
-                    id: rescheduleApt.id,
-                    date: newDate,
-                    time: newTime,
-                  })
-                }
+                disabled={!newTime || !rescheduleTimes.includes(newTime)}
+                onClick={() => {
+                  const invalid = validateBooking(newDate, newTime);
+                  setValidationError(invalid);
+                  if (invalid || rescheduleMutation.isPending) return;
+                  rescheduleMutation.mutate({ id: rescheduleApt.id, date: newDate, time: newTime });
+                }}
               >
                 Confirm Reschedule
               </Button>
@@ -204,9 +217,10 @@ export const AppointmentListPage: React.FC = () => {
           maxWidth="sm"
         >
           <div className="space-y-4">
+            {cancelMutation.isError && <p role="alert" className="text-sm text-rose-700">{errorMessage(cancelMutation.error)}</p>}
             <p className="text-xs text-slate-600 dark:text-slate-400 transition-colors">
               Are you sure you want to cancel your consultation with{' '}
-              <strong className="text-slate-900 dark:text-slate-200">{cancelApt.doctorName}</strong> on {cancelApt.appointmentDate}? Any pre-paid fees will be automatically credited back.
+              <strong className="text-slate-900 dark:text-slate-200">{cancelApt.doctorName}</strong> on {cancelApt.appointmentDate}?
             </p>
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 transition-colors">
               <Button variant="outline" onClick={() => setCancelApt(null)}>

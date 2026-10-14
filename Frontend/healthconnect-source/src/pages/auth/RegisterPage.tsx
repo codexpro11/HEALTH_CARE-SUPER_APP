@@ -5,7 +5,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Select } from '../../components/common/Select';
-import { UserRole } from '../../types';
+import { localDate } from '../../lib/frontend';
 
 export const RegisterPage: React.FC = () => {
   const [fullName, setFullName] = useState('');
@@ -13,9 +13,8 @@ export const RegisterPage: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState('1995-06-20');
-  const [gender, setGender] = useState<'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY'>('FEMALE');
-  const [role, setRole] = useState<UserRole>('PATIENT');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [gender, setGender] = useState<'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY'>('PREFER_NOT_TO_SAY');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -37,6 +36,14 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
+    if (!dateOfBirth || dateOfBirth > localDate()) {
+      setFormError('Enter a valid date of birth.');
+      return;
+    }
+    if (phoneNumber.replace(/\D/g, '').length < 7) {
+      setFormError('Enter a valid phone number.');
+      return;
+    }
     if (!termsAccepted) {
       setFormError('You must accept the terms and privacy notice to continue.');
       return;
@@ -50,7 +57,7 @@ export const RegisterPage: React.FC = () => {
       confirmPassword,
       dateOfBirth,
       gender,
-      role,
+      role: 'PATIENT',
       termsAccepted,
     });
 
@@ -110,6 +117,7 @@ export const RegisterPage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Input
             label="Date of Birth"
+            max={localDate()}
             type="date"
             value={dateOfBirth}
             onChange={(e) => setDateOfBirth(e.target.value)}
@@ -129,20 +137,7 @@ export const RegisterPage: React.FC = () => {
             ]}
           />
 
-          <Select
-            label="Primary Role"
-            value={role}
-            onChange={(e) => setRole(e.target.value as UserRole)}
-            options={[
-              { value: 'PATIENT', label: 'Patient' },
-              { value: 'DOCTOR', label: 'Doctor' },
-              { value: 'HOSPITAL', label: 'Hospital Admin' },
-              { value: 'PHARMACY', label: 'Pharmacy Rep' },
-              { value: 'DIAGNOSTIC_CENTER', label: 'Diagnostic Center' },
-              { value: 'AMBULANCE_PROVIDER', label: 'Ambulance Unit' },
-              { value: 'BLOOD_BANK', label: 'Blood Bank' },
-            ]}
-          />
+          <p className="text-xs text-slate-500">New accounts start as patients. Provider access is assigned separately.</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -177,7 +172,7 @@ export const RegisterPage: React.FC = () => {
             I agree to the{' '}
             <span className="text-teal-600 font-semibold underline">Terms of Clinical Service</span>{' '}
             and acknowledge the{' '}
-            <span className="text-teal-600 font-semibold underline">HIPAA & Privacy Policy</span>.
+            <span className="text-teal-600 font-semibold underline">Privacy notice</span>.
           </span>
         </label>
 

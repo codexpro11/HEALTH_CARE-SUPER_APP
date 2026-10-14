@@ -16,6 +16,8 @@ import { useAuth } from '../../auth/AuthContext';
 import { appointmentApi } from '../../api/appointmentApi';
 import { medicalRecordApi } from '../../api/medicalRecordApi';
 import { pharmacyApi } from '../../api/pharmacyApi';
+import { ErrorState } from '../../components/common/ErrorState';
+import { errorMessage } from '../../lib/request';
 import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 
 export const DashboardPage: React.FC = () => {
@@ -23,19 +25,19 @@ export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
   // Fetch upcoming appointment
-  const { data: appointmentsRes, isLoading: isLoadingApts } = useQuery({
+  const { data: appointmentsRes, isLoading: isLoadingApts, error: appointmentError, refetch: refetchAppointments } = useQuery({
     queryKey: ['appointments', 'upcoming'],
     queryFn: () => appointmentApi.getAppointments('CONFIRMED'),
   });
 
   // Fetch recent records
-  const { data: recordsRes } = useQuery({
+  const { data: recordsRes, error: recordError, refetch: refetchRecords } = useQuery({
     queryKey: ['medical-records', 'recent'],
     queryFn: () => medicalRecordApi.getRecords('ALL'),
   });
 
   // Fetch recent orders
-  const { data: ordersRes } = useQuery({
+  const { data: ordersRes, error: orderError, refetch: refetchOrders } = useQuery({
     queryKey: ['pharmacy', 'orders'],
     queryFn: () => pharmacyApi.getOrders(),
   });
@@ -46,6 +48,7 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans">
+      {(appointmentError || recordError || orderError) && <ErrorState message={errorMessage(appointmentError || recordError || orderError)} onRetry={() => { void refetchAppointments(); void refetchRecords(); void refetchOrders(); }} />}
       {/* Welcome Title */}
       <div>
         <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 transition-colors">
@@ -53,7 +56,7 @@ export const DashboardPage: React.FC = () => {
         </h2>
         <p className="text-slate-500 dark:text-slate-400 transition-colors">
           {nextAppointment
-            ? 'You have 1 appointment scheduled for today.'
+            ? 'Your next appointment is on ' + nextAppointment.appointmentDate + '.'
             : 'You have no urgent consultations pending.'}
         </p>
       </div>

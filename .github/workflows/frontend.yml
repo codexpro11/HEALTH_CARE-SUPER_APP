@@ -1,0 +1,43 @@
+name: Frontend checks
+
+on:
+  push:
+    branches: ['codex/frontend-stabilization', 'main-atharv']
+    paths: ['Frontend/healthconnect-source/**', '.github/workflows/frontend.yml']
+  pull_request:
+    paths: ['Frontend/healthconnect-source/**', '.github/workflows/frontend.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Frontend/healthconnect-source
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Frontend/healthconnect-source/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build
+        env:
+          VITE_DEMO_MODE: 'true'
+      - run: npm install --no-save --package-lock=false playwright
+      - run: npx playwright install --with-deps chromium
+      - name: Browser smoke
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/healthconnect-preview.log 2>&1 &
+          node tests/browser-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-browser-smoke
+          path: Frontend/healthconnect-source/test-results/
+          if-no-files-found: ignore

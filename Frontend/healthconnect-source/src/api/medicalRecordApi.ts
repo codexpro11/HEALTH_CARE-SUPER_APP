@@ -1,3 +1,4 @@
+import { demoStorageKey } from '../lib/demo';
 import { apiClient, executeWithFallback } from './axios';
 import { ApiResponse, MedicalRecord, Prescription, ProviderConsent, RecordType } from '../types';
 import { mockMedicalRecords, mockPrescriptions, mockProviderConsents } from '../data/mockData';
@@ -7,7 +8,7 @@ const CONSENTS_STORAGE_KEY = 'hc_user_consents';
 
 function getStoredRecords(): MedicalRecord[] {
   try {
-    const saved = localStorage.getItem(RECORDS_STORAGE_KEY);
+    const saved = localStorage.getItem(demoStorageKey(RECORDS_STORAGE_KEY));
     if (saved) return JSON.parse(saved);
   } catch {
     // ignore
@@ -17,7 +18,7 @@ function getStoredRecords(): MedicalRecord[] {
 
 function getStoredConsents(): ProviderConsent[] {
   try {
-    const saved = localStorage.getItem(CONSENTS_STORAGE_KEY);
+    const saved = localStorage.getItem(demoStorageKey(CONSENTS_STORAGE_KEY));
     if (saved) return JSON.parse(saved);
   } catch {
     // ignore
@@ -90,7 +91,7 @@ export const medicalRecordApi = {
         if (item) {
           item.status = 'REVOKED';
           try {
-            localStorage.setItem(CONSENTS_STORAGE_KEY, JSON.stringify(consents));
+            localStorage.setItem(demoStorageKey(CONSENTS_STORAGE_KEY), JSON.stringify(consents));
           } catch {
             // ignore
           }
@@ -124,7 +125,7 @@ export const medicalRecordApi = {
         const records = getStoredRecords();
         const updated = [newRecord, ...records];
         try {
-          localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(updated));
+          localStorage.setItem(demoStorageKey(RECORDS_STORAGE_KEY), JSON.stringify(updated));
         } catch {
           // ignore
         }
