@@ -41,10 +41,12 @@ export const hospitalApi = {
     return executeWithFallback(
       () => apiClient.get(`/api/v1/hospitals/${id}`),
       () => {
-        const found = mockHospitals.find((h) => h.id === id) || mockHospitals[0];
+        const found = mockHospitals.find((h) => h.id === id);
+        if (!found) throw new Error('Hospital unavailable.');
         return found;
       },
       'Hospital details retrieved'
     );
   },
 };
+

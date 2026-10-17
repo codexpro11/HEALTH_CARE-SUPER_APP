@@ -1,5 +1,6 @@
 import { validateBooking } from '../lib/frontend';
-import { demoStorageKey } from '../lib/demo';
+import { readDiagnosticBookings, saveDiagnosticBookings } from '../lib/healthcareDemo';
+import { validateDiagnosticRequest, type DiagnosticBookingRequest } from '../lib/healthcareRules';
 import { apiClient, executeWithFallback } from './axios';
 import {
   ApiResponse,
@@ -10,20 +11,7 @@ import {
 import {
   mockDiagnosticCenters,
   mockDiagnosticTests,
-  mockDiagnosticBookings,
 } from '../data/mockData';
-
-const DIAG_BOOKINGS_KEY = 'hc_diag_bookings';
-
-function getStoredDiagBookings(): DiagnosticBooking[] {
-  try {
-    const saved = localStorage.getItem(demoStorageKey(DIAG_BOOKINGS_KEY));
-    if (saved) return JSON.parse(saved);
-  } catch {
-    // ignore
-  }
-  return mockDiagnosticBookings;
-}
 
 export const diagnosticApi = {
   getDiagnosticCenters: async (search?: string): Promise<ApiResponse<DiagnosticCenter[]>> => {
@@ -63,30 +51,25 @@ export const diagnosticApi = {
   getBookings: async (): Promise<ApiResponse<DiagnosticBooking[]>> => {
     return executeWithFallback(
       () => apiClient.get('/api/v1/diagnostics/bookings'),
-      () => getStoredDiagBookings(),
+      () => readDiagnosticBookings(),
       'Diagnostic bookings retrieved'
     );
   },
 
-  createBooking: async (booking: {
-    centerId: string;
-    testId: string;
-    collectionType: 'HOME_COLLECTION' | 'CENTER_VISIT';
-    scheduledDate: string;
-    scheduledTime: string;
-    patientAddress?: string;
-  }): Promise<ApiResponse<DiagnosticBooking>> => {
+  createBooking: async (booking: DiagnosticBookingRequest): Promise<ApiResponse<DiagnosticBooking>> => {
     const invalid = validateBooking(booking.scheduledDate, booking.scheduledTime);
     if (invalid) throw new Error(invalid);
     return executeWithFallback(
       () => apiClient.post('/api/v1/diagnostics/bookings', booking),
       () => {
-        const center = mockDiagnosticCenters.find((c) => c.id === booking.centerId) || mockDiagnosticCenters[0];
-        const test = mockDiagnosticTests.find((t) => t.id === booking.testId) || mockDiagnosticTests[0];
-
-        if (booking.collectionType === 'HOME_COLLECTION' && !test.isHomeCollectionAvailable) throw new Error('This test requires a center visit.');
+        const current = readDiagnosticBookings();
+        const center = mockDiagnosticCenters.find((c) => c.id === booking.centerId);
+        const test = mockDiagnosticTests.find((t) => t.id === booking.testId);
+        const error = validateDiagnosticRequest(booking, test, center, current);
+        if (error) throw new Error(error);
+        if (!center || !test) throw new Error('Test or center unavailable.');
         const newBooking: DiagnosticBooking = {
-          id: `diag-book-${Date.now()}`,
+          id: 'diag-book-' + crypto.randomUUID(),
           bookingRef: `DB-2026-${Math.floor(1000 + Math.random() * 9000)}`,
           centerId: center.id,
           centerName: center.name,
@@ -96,23 +79,30 @@ export const diagnosticApi = {
           scheduledDate: booking.scheduledDate,
           scheduledTime: booking.scheduledTime,
           status: 'BOOKED',
-          price: test.discountedPrice || test.price,
-          patientAddress: booking.patientAddress,
+          price: test.discountedPrice ?? test.price,
+          patientAddress: booking.collectionType === 'HOME_COLLECTION' ? booking.patientAddress?.trim() : undefined,
           createdAt: new Date().toISOString(),
         };
 
-        const current = getStoredDiagBookings();
         const updated = [newBooking, ...current];
-        try {
-          localStorage.setItem(demoStorageKey(DIAG_BOOKINGS_KEY), JSON.stringify(updated));
-        } catch {
-          throw new Error('The diagnostic booking could not be saved in this browser.');
-        }
+        saveDiagnosticBookings(updated);
         return newBooking;
       },
       'Diagnostic test booked successfully'
     );
   },
+
+  cancelBooking: async (id: string): Promise<ApiResponse<DiagnosticBooking>> => executeWithFallback(
+    () => apiClient.post(`/api/v1/diagnostics/bookings/${encodeURIComponent(id)}/cancel`),
+    () => {
+      const bookings = readDiagnosticBookings();
+      const booking = bookings.find(item => item.id === id);
+      if (!booking) throw new Error('Diagnostic booking unavailable.');
+      if (booking.status !== 'BOOKED') throw new Error('Only an unstarted booking can be cancelled.');
+      const updated: DiagnosticBooking = { ...booking, status: 'CANCELLED' };
+      saveDiagnosticBookings(bookings.map(item => item.id === id ? updated : item));
+      return updated;
+    }, 'Diagnostic booking cancelled'),
 
   getTests: async (category?: string, query?: string): Promise<ApiResponse<DiagnosticTest[]>> => {
     return diagnosticApi.getAllTests(category, query);
@@ -132,3 +122,4 @@ export const diagnosticApi = {
     });
   },
 };
+

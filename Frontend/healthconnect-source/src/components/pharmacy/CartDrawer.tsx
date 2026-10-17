@@ -3,17 +3,16 @@ import { X, Trash2, Plus, Minus, ArrowRight, ShoppingBag, ShieldCheck } from 'lu
 import { useCartStore } from '../../stores/cartStore';
 import { Button } from '../common/Button';
 import { useNavigate } from 'react-router-dom';
+import { quoteCart } from '../../lib/healthcareRules';
 
 export const CartDrawer: React.FC = () => {
-  const { items, isDrawerOpen, setIsDrawerOpen, removeItem, updateQuantity, getSubtotal } =
+  const { items, isDrawerOpen, setIsDrawerOpen, removeItem, updateQuantity } =
     useCartStore();
   const navigate = useNavigate();
 
   if (!isDrawerOpen) return null;
 
-  const subtotal = getSubtotal();
-  const deliveryFee = subtotal > 30 || subtotal === 0 ? 0 : 4.99;
-  const total = subtotal + deliveryFee;
+  const { subtotal, deliveryFee, total } = quoteCart(items);
 
   const handleCheckout = () => {
     setIsDrawerOpen(false);
@@ -73,7 +72,7 @@ export const CartDrawer: React.FC = () => {
                     <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate transition-colors">{medicine.name}</h4>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 transition-colors">{medicine.strength}</p>
                     <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 transition-colors">
-                      ${(medicine.discountPrice || medicine.price).toFixed(2)}
+                      ${(medicine.discountPrice ?? medicine.price).toFixed(2)}
                     </span>
                   </div>
 
@@ -127,7 +126,7 @@ export const CartDrawer: React.FC = () => {
 
               <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 bg-teal-50/50 dark:bg-teal-900/20 p-2 rounded-lg border border-teal-100 dark:border-teal-900/50 transition-colors">
                 <ShieldCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-500 shrink-0 transition-colors" />
-                <span>Licensed pharmacy partner fulfillment & prescription safety check</span>
+                  <span>Prescription items require a document reference at checkout and pharmacy review.</span>
               </div>
 
               <Button
@@ -145,3 +144,4 @@ export const CartDrawer: React.FC = () => {
     </div>
   );
 };
+

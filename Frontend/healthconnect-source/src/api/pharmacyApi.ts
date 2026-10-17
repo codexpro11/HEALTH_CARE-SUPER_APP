@@ -1,6 +1,7 @@
 import { validateCheckout } from '../lib/frontend';
-import { getDemoSession } from '../lib/demo';
-import { demoStorageKey } from '../lib/demo';
+import { readPharmacyOrders, requireServicePatient, savePharmacyOrders } from '../lib/healthcareDemo';
+import { canCancelOrder, canonicalCart, prescriptionRecords, quoteCart, validatePharmacyRequest } from '../lib/healthcareRules';
+import { getStoredRecords } from './medicalRecordApi';
 import { apiClient, executeWithFallback } from './axios';
 import {
   ApiResponse,
@@ -8,19 +9,7 @@ import {
   PharmacyOrder,
   CartItem,
 } from '../types';
-import { mockMedicines, mockOrders } from '../data/mockData';
-
-const ORDERS_STORAGE_KEY = 'hc_pharmacy_orders';
-
-function getStoredOrders(): PharmacyOrder[] {
-  try {
-    const saved = localStorage.getItem(demoStorageKey(ORDERS_STORAGE_KEY));
-    if (saved) return JSON.parse(saved);
-  } catch {
-    // ignore
-  }
-  return mockOrders;
-}
+import { mockMedicines } from '../data/mockData';
 
 export const pharmacyApi = {
   getMedicines: async (
@@ -66,7 +55,8 @@ export const pharmacyApi = {
     return executeWithFallback(
       () => apiClient.get(`/api/v1/pharmacy/medicines/${id}`),
       () => {
-        const found = mockMedicines.find((m) => m.id === id) || mockMedicines[0];
+        const found = mockMedicines.find((m) => m.id === id);
+        if (!found) throw new Error('Medicine unavailable.');
         return found;
       },
       'Medicine details retrieved'
@@ -76,7 +66,7 @@ export const pharmacyApi = {
   getOrders: async (): Promise<ApiResponse<PharmacyOrder[]>> => {
     return executeWithFallback(
       () => apiClient.get('/api/v1/pharmacy/orders'),
-      () => getStoredOrders(),
+      () => readPharmacyOrders(),
       'Orders retrieved'
     );
   },
@@ -84,66 +74,78 @@ export const pharmacyApi = {
   createOrder: async (payload: {
     items: CartItem[];
     deliveryAddress: string;
-    paymentMethod: any;
+    paymentMethod: PharmacyOrder['paymentMethod'];
     prescriptionUploaded?: boolean;
+    prescriptionRecordId?: string;
   }): Promise<ApiResponse<PharmacyOrder>> => {
     const invalid = validateCheckout(payload.items, payload.deliveryAddress);
     if (invalid) throw new Error(invalid);
     return executeWithFallback(
       () => apiClient.post('/api/v1/pharmacy/orders', payload),
       () => {
-        const subtotal = payload.items.reduce(
-          (acc, item) => acc + (item.medicine.discountPrice || item.medicine.price) * item.quantity,
-          0
-        );
+        const patient = requireServicePatient();
+        if (!['CARD', 'UPI', 'CASH_ON_DELIVERY', 'INSURANCE', 'COD'].includes(payload.paymentMethod)) throw new Error('Choose a supported payment method.');
+        const items = canonicalCart(payload.items, mockMedicines);
+        const records = prescriptionRecords(getStoredRecords(), patient.id);
+        const invalid = validatePharmacyRequest(items, payload.deliveryAddress, payload.prescriptionRecordId, records);
+        if (invalid) throw new Error(invalid);
+        const { subtotal, deliveryFee, total: finalTotal } = quoteCart(items);
+        const prescriptionRequired = items.some(item => item.medicine.requiresPrescription);
+        const status = prescriptionRequired ? 'PHARMACY_PROCESSING' : 'CONFIRMED';
+        const timestamp = new Date().toISOString();
         const discount = 0;
-        const deliveryFee = subtotal > 30 ? 0 : 4.99;
-        const finalTotal = Math.round((subtotal - discount + deliveryFee) * 100) / 100;
 
         const newOrder: PharmacyOrder = {
-          id: `ord-${Date.now()}`,
+          id: 'ord-' + crypto.randomUUID(),
           orderNumber: `HC-ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-          patientId: getDemoSession()?.id ?? 'demo-patient',
-          items: payload.items,
+          patientId: patient.id,
+          items,
           totalAmount: subtotal,
           discountAmount: discount,
           deliveryFee,
           finalAmount: finalTotal,
-          deliveryAddress: payload.deliveryAddress,
-          prescriptionUploaded: payload.prescriptionUploaded,
-          status: 'CONFIRMED',
+          deliveryAddress: payload.deliveryAddress.trim(),
+          prescriptionUploaded: prescriptionRequired,
+          prescriptionRecordId: prescriptionRequired ? payload.prescriptionRecordId : undefined,
+          status,
           paymentMethod: payload.paymentMethod,
           createdAt: new Date().toISOString(),
-          estimatedDeliveryTime: 'Tomorrow by 2:00 PM',
+          estimatedDeliveryTime: 'Not scheduled in demo',
           timeline: [
             {
               status: 'CREATED',
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              description: 'Order placed successfully',
+              timestamp,
+              description: 'Demo order saved; no payment processed',
             },
             {
-              status: 'CONFIRMED',
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              description: 'Demo order confirmed; no payment processed',
-            },
-            {
-              status: 'PHARMACY_PROCESSING',
-              timestamp: 'Next',
-              description: 'Sent to partner dispensary',
+              status,
+              timestamp,
+              description: prescriptionRequired ? 'Prescription reference selected; pharmacist review is simulated and pending' : 'Demo confirmation; no shipment or insurance approval',
             },
           ],
         };
 
-        const current = getStoredOrders();
+        const current = readPharmacyOrders();
         const updated = [newOrder, ...current];
-        try {
-          localStorage.setItem(demoStorageKey(ORDERS_STORAGE_KEY), JSON.stringify(updated));
-        } catch {
-          throw new Error('The order could not be saved in this browser.');
-        }
+        savePharmacyOrders(updated);
         return newOrder;
       },
       'Order placed successfully'
     );
   },
+
+  cancelOrder: async (id: string): Promise<ApiResponse<PharmacyOrder>> => executeWithFallback(
+    () => apiClient.post(`/api/v1/pharmacy/orders/${encodeURIComponent(id)}/cancel`),
+    () => {
+      const orders = readPharmacyOrders();
+      const order = orders.find(item => item.id === id);
+      if (!order) throw new Error('Order unavailable.');
+      if (!canCancelOrder(order.status)) throw new Error('This order can no longer be cancelled.');
+      const cancelled: PharmacyOrder = { ...order, status: 'CANCELLED', timeline: [...order.timeline, {
+        status: 'CANCELLED', timestamp: new Date().toISOString(), description: 'Demo cancellation saved; no payment or refund processed',
+      }] };
+      savePharmacyOrders(orders.map(item => item.id === id ? cancelled : item));
+      return cancelled;
+    }, 'Order cancelled'),
 };
+

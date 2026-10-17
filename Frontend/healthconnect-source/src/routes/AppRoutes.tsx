@@ -1,6 +1,13 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { homeForRole, isProviderRole } from '../lib/nfcAuthorization';
+import { ProviderWorkspacePage } from '../pages/provider/ProviderWorkspacePage';
+import { PhaseProgressPage } from '../pages/PhaseProgressPage';
+import { RecordComparisonPage } from '../pages/RecordComparisonPage';
+import { ServicesComparisonPage } from '../pages/ServicesComparisonPage';
+import { EmergencyComparisonPage } from '../pages/EmergencyComparisonPage';
+import { RoleWorkspacePage } from '../pages/RoleWorkspacePage';
 
 // Layouts
 import { AppLayout } from '../layouts/AppLayout';
@@ -36,6 +43,7 @@ import { ConsentManagementPage } from '../pages/consent/ConsentManagementPage';
 import { InsuranceDashboardPage } from '../pages/insurance/InsuranceDashboardPage';
 import { InsuranceDetailsPage } from '../pages/insurance/InsuranceDetailsPage';
 import { InsuranceClaimsPage } from '../pages/insurance/InsuranceClaimsPage';
+import { InsuranceClaimDetailsPage } from '../pages/insurance/InsuranceClaimDetailsPage';
 
 // Provider Features
 import { ProviderNfcScannerPage } from '../pages/provider/nfc/ProviderNfcScannerPage';
@@ -44,10 +52,11 @@ import { ProviderNfcEmergencyPage } from '../pages/provider/nfc/ProviderNfcEmerg
 
 // Protected Route Guard
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, role } = useAuth();
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+  if (role !== 'PATIENT') return <Navigate to={homeForRole(role)} replace />;
   return <>{children}</>;
 };
 
@@ -58,8 +67,8 @@ const ProviderRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     return <Navigate to="/login" replace />;
   }
   // Check if role is allowed to access provider dashboard
-  if (role !== 'DOCTOR' && role !== 'HOSPITAL' && role !== 'ADMIN') {
-    return <Navigate to="/app/dashboard" replace />;
+  if (!isProviderRole(role)) {
+    return <Navigate to={homeForRole(role)} replace />;
   }
   return <>{children}</>;
 };
@@ -67,17 +76,12 @@ const ProviderRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 // Public Route Guard (Redirect to dashboard if logged in)
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, role } = useAuth();
-  if (isAuthenticated) {
-    if (role === 'DOCTOR' || role === 'HOSPITAL') {
-      return <Navigate to="/provider/dashboard" replace />;
-    }
-    return <Navigate to="/app/dashboard" replace />;
-  }
+  if (isAuthenticated) return <Navigate to={homeForRole(role)} replace />;
   return <>{children}</>;
 };
 
 export const AppRoutes: React.FC = () => {
-  const { isLoading } = useAuth();
+  const { isLoading, isAuthenticated, role } = useAuth();
 
   if (isLoading) {
     return (
@@ -90,7 +94,8 @@ export const AppRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Root redirect */}
-      <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
+      <Route path="/" element={<Navigate to={isAuthenticated ? homeForRole(role) : '/login'} replace />} />
+      <Route path="/workspace" element={!isAuthenticated ? <Navigate to="/login" replace /> : role === 'PATIENT' || isProviderRole(role) ? <Navigate to={homeForRole(role)} replace /> : <RoleWorkspacePage />} />
 
       {/* Auth Routes */}
       <Route
@@ -121,9 +126,14 @@ export const AppRoutes: React.FC = () => {
         <Route path="appointments" element={<AppointmentListPage />} />
         <Route path="appointments/:id" element={<AppointmentDetailPage />} />
         <Route path="nfc" element={<NfcCardPage />} />
+        <Route path="progress" element={<PhaseProgressPage />} />
+        <Route path="compare" element={<EmergencyComparisonPage />} />
+        <Route path="compare/services" element={<ServicesComparisonPage />} />
+        <Route path="compare/records" element={<RecordComparisonPage />} />
         <Route path="consent" element={<ConsentManagementPage />} />
         <Route path="insurance" element={<InsuranceDashboardPage />} />
         <Route path="insurance/claims" element={<InsuranceClaimsPage />} />
+        <Route path="insurance/claims/:id" element={<InsuranceClaimDetailsPage />} />
         <Route path="insurance/:id" element={<InsuranceDetailsPage />} />
         <Route path="medical-records" element={<MedicalRecordListPage />} />
         <Route path="prescriptions" element={<PrescriptionListPage />} />
@@ -148,22 +158,23 @@ export const AppRoutes: React.FC = () => {
         }
       >
         <Route index element={<Navigate to="/provider/dashboard" replace />} />
-        <Route path="dashboard" element={<div className="p-8">Provider Dashboard - Coming Soon</div>} />
-        <Route path="patients" element={<div className="p-8">Patients List - Coming Soon</div>} />
+        <Route path="dashboard" element={<ProviderWorkspacePage />} />
+        <Route path="patients" element={<ProviderWorkspacePage view="patients" />} />
+        <Route path="progress" element={<PhaseProgressPage />} />
+        <Route path="appointments/:id" element={<ProviderWorkspacePage view="appointments" />} />
         <Route path="nfc-scanner" element={<ProviderNfcScannerPage />} />
         <Route path="nfc/summary/:id" element={<ProviderNfcSummaryPage />} />
         <Route path="nfc/emergency" element={<ProviderNfcEmergencyPage />} />
-        <Route path="appointments" element={<div className="p-8">Provider Appointments - Coming Soon</div>} />
-        <Route path="medical-records" element={<div className="p-8">Provider Records - Coming Soon</div>} />
-        <Route path="prescriptions" element={<div className="p-8">Provider Prescriptions - Coming Soon</div>} />
+        <Route path="appointments" element={<ProviderWorkspacePage view="appointments" />} />
+        <Route path="medical-records" element={<ProviderWorkspacePage view="records" />} />
+        <Route path="prescriptions" element={<ProviderWorkspacePage view="prescriptions" />} />
         <Route path="insurance" element={<div className="p-8">Provider Insurance - Coming Soon</div>} />
         <Route path="profile" element={<div className="p-8">Provider Profile - Coming Soon</div>} />
         <Route path="settings" element={<div className="p-8">Provider Settings - Coming Soon</div>} />
       </Route>
 
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
-

@@ -1,12 +1,17 @@
-import { demoStorageKey } from '../lib/demo';
+import { demoStorageKey, isDemoMode, writeStored } from '../lib/demo';
+import { readDemoRecordAttachment, saveDemoRecordAttachment } from '../lib/recordAttachments';
 import { apiClient, executeWithFallback } from './axios';
 import { ApiResponse, MedicalRecord, Prescription, ProviderConsent, RecordType } from '../types';
 import { mockMedicalRecords, mockPrescriptions, mockProviderConsents } from '../data/mockData';
+import { appendRecordActivity, getRecordActivity, requireRecordPatient, type RecordActivity } from '../lib/recordActivity';
+import { validateRecordAttachment, deleteDemoRecordAttachment } from '../lib/recordAttachments';
+import { validateRecordMetadata } from '../lib/medicalRecordRules';
+import { localDate } from '../lib/frontend';
 
 const RECORDS_STORAGE_KEY = 'hc_user_records';
 const CONSENTS_STORAGE_KEY = 'hc_user_consents';
 
-function getStoredRecords(): MedicalRecord[] {
+export function getStoredRecords(): MedicalRecord[] {
   try {
     const saved = localStorage.getItem(demoStorageKey(RECORDS_STORAGE_KEY));
     if (saved) return JSON.parse(saved);
@@ -103,35 +108,93 @@ export const medicalRecordApi = {
     );
   },
 
-  uploadRecord: async (record: Partial<MedicalRecord>): Promise<ApiResponse<MedicalRecord>> => {
+  uploadRecord: async (record: Partial<MedicalRecord>, file?: File): Promise<ApiResponse<MedicalRecord>> => {
+    const metadataError = validateRecordMetadata(record, localDate());
+    const fileError = file ? validateRecordAttachment(file) : null;
+    if (metadataError || fileError) throw new Error(metadataError || fileError!);
     return executeWithFallback(
-      () => apiClient.post('/api/v1/medical-records', record),
       () => {
+        if (!file) return apiClient.post('/api/v1/medical-records', record);
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(record)], { type: 'application/json' }), 'record.json');
+        form.append('file', file, file.name);
+        return apiClient.post('/api/v1/medical-records', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      },
+      async () => {
+        const user = requireRecordPatient();
+        const id = 'rec-' + crypto.randomUUID();
         const newRecord: MedicalRecord = {
-          id: `rec-${Date.now()}`,
-          patientId: 'usr-patient-001',
+          id,
+          patientId: user.id,
           title: record.title || 'Medical Record Document',
           recordType: record.recordType || 'LAB_REPORT',
-          doctorName: record.doctorName || 'Dr. Sarah Jenkins',
-          provider: record.provider || 'Metro Health Diagnostics',
-          date: record.date || new Date().toISOString().split('T')[0],
-          summary: record.summary || 'Uploaded health document',
-          status: 'VERIFIED',
-          fileSize: record.fileSize || '1.2 MB',
-          fileType: record.fileType || 'PDF',
-          tags: record.tags || ['general'],
+          doctorName: record.doctorName || 'Not provided',
+          provider: record.provider || 'Not provided',
+          date: record.date || new Date().toISOString().slice(0, 10),
+          summary: record.summary || 'Patient-uploaded health record document.',
+          status: 'PENDING',
+          fileSize: file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : record.fileSize,
+          fileType: file?.type || record.fileType,
+          fileMimeType: file?.type || record.fileMimeType,
+          originalFileName: file?.name || record.originalFileName,
+          tags: record.tags || ['patient-upload'],
           confidentialityLevel: record.confidentialityLevel || 'STANDARD',
         };
         const records = getStoredRecords();
-        const updated = [newRecord, ...records];
-        try {
-          localStorage.setItem(demoStorageKey(RECORDS_STORAGE_KEY), JSON.stringify(updated));
-        } catch {
-          // ignore
+        if (file) await saveDemoRecordAttachment(demoStorageKey('hc_record_file:' + id), file);
+        try { writeStored(demoStorageKey(RECORDS_STORAGE_KEY), [newRecord, ...records]); }
+        catch (error) {
+          if (file) await deleteDemoRecordAttachment(demoStorageKey('hc_record_file:' + id)).catch(() => {});
+          throw error;
         }
+        // A history failure must not turn a successfully saved document into a retry/duplicate.
+        try { appendRecordActivity(id, newRecord.title, 'UPLOADED'); } catch { /* visible storage is authoritative */ }
         return newRecord;
       },
       'Medical record uploaded successfully'
     );
+  },
+
+  getAttachment: async (record: MedicalRecord): Promise<Blob> => {
+    if (isDemoMode) {
+      requireRecordPatient();
+      if (!getStoredRecords().some(item => item.id === record.id)) throw new Error('This record is unavailable in this account.');
+      const attachment = await readDemoRecordAttachment(demoStorageKey('hc_record_file:' + record.id));
+      if (!attachment) throw new Error('No saved file is available for this record.');
+      return attachment;
+    }
+    if (!record.fileUrl && !record.originalFileName) {
+      throw new Error('This record does not have an attached file.');
+    }
+    const response = await apiClient.get(record.fileUrl || `/api/v1/medical-records/${encodeURIComponent(record.id)}/file`, {
+      responseType: 'blob',
+    });
+    return response.data as Blob;
+  },
+
+  setArchived: async (id: string, archived: boolean): Promise<ApiResponse<MedicalRecord>> => executeWithFallback(
+    () => apiClient.post(`/api/v1/medical-records/${encodeURIComponent(id)}/${archived ? 'archive' : 'restore'}`),
+    () => {
+      requireRecordPatient();
+      const records = getStoredRecords();
+      const item = records.find(record => record.id === id);
+      if (!item) throw new Error('This record is unavailable in this account.');
+      const previous = (item as MedicalRecord & { previousStatus?: MedicalRecord['status'] }).previousStatus;
+      const next = archived ? { ...item, previousStatus: item.status, status: 'ARCHIVED' as const }
+        : { ...item, status: previous === 'VERIFIED' ? 'VERIFIED' as const : 'PENDING' as const };
+      if ((item.status === 'ARCHIVED') === archived) return item;
+      writeStored(demoStorageKey(RECORDS_STORAGE_KEY), records.map(record => record.id === id ? next : record));
+      try { appendRecordActivity(id, item.title, archived ? 'ARCHIVED' : 'RESTORED'); } catch { /* do not retry a completed write */ }
+      return next;
+    }, 'Document status updated'),
+
+  getActivity: async (): Promise<ApiResponse<RecordActivity[]>> => executeWithFallback(
+    () => apiClient.get('/api/v1/medical-records/activity'), () => getRecordActivity(), 'Document activity fetched'),
+
+  logActivity: (record: MedicalRecord, action: 'VIEWED' | 'DOWNLOADED') => {
+    if (isDemoMode) appendRecordActivity(record.id, record.title, action);
+    // In live mode, reads/downloads must be audited by the backend that authorizes them.
   },
 };

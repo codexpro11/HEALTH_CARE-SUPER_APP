@@ -1,91 +1,28 @@
 import React from 'react';
-import {
-  Calendar,
-  Pill,
-  FileText,
-  Truck,
-  Siren,
-  CreditCard,
-  Check,
-  Circle,
-} from 'lucide-react';
-import { AppNotification, NotificationType } from '../../types';
+import { Bell, Siren } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import type { AppNotification } from '../../types';
+import { safeNotificationRoute } from '../../lib/emergencyRules';
 
 export interface NotificationItemProps {
   notification: AppNotification;
   onMarkRead?: (id: string) => void;
   onClick?: (notification: AppNotification) => void;
+  busy?: boolean;
 }
-
-export const NotificationItem: React.FC<NotificationItemProps> = ({
-  notification,
-  onMarkRead,
-  onClick,
-}) => {
-  const getIcon = (type: NotificationType) => {
-    switch (type) {
-      case 'AppointmentBooked':
-      case 'AppointmentCancelled':
-        return <Calendar className="w-4 h-4 text-teal-600" />;
-      case 'PrescriptionCreated':
-        return <Pill className="w-4 h-4 text-indigo-600" />;
-      case 'LabReportReady':
-        return <FileText className="w-4 h-4 text-cyan-600" />;
-      case 'MedicineOrderShipped':
-        return <Truck className="w-4 h-4 text-amber-600" />;
-      case 'EmergencyRequestCreated':
-        return <Siren className="w-4 h-4 text-rose-600" />;
-      case 'PaymentSuccessful':
-        return <CreditCard className="w-4 h-4 text-emerald-600" />;
-      default:
-        return <Calendar className="w-4 h-4 text-slate-500" />;
-    }
-  };
-
-  return (
-    <div
-      onClick={() => onClick?.(notification)}
-      className={`p-4 rounded-xl border transition-all cursor-pointer flex items-start gap-3.5 ${
-        notification.read
-          ? 'bg-white border-slate-200/80 hover:bg-slate-50/70'
-          : 'bg-teal-50/40 border-teal-200/70 hover:bg-teal-50/60 shadow-xs'
-      }`}
-    >
-      <div className="w-8 h-8 rounded-lg bg-white border border-slate-200/60 shadow-2xs flex items-center justify-center shrink-0 mt-0.5">
-        {getIcon(notification.type)}
+export const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onMarkRead, onClick, busy }) => {
+  const route = safeNotificationRoute(notification.actionUrl);
+  const Icon = notification.type.startsWith('Emergency') ? Siren : Bell;
+  return <article className={'p-4 rounded-xl border flex items-start gap-3 ' + (notification.read ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800' : 'bg-teal-50 dark:bg-teal-950 border-teal-200 dark:border-teal-800')}>
+    <Icon className="w-5 h-5 shrink-0 text-teal-600 mt-1" />
+    <div className="min-w-0 flex-1 space-y-2">
+      <h3 className="text-sm font-bold">{notification.title}{!notification.read && <span className="ml-2 text-xs text-teal-700 dark:text-teal-300">Unread</span>}</h3>
+      <p className="text-sm text-slate-600 dark:text-slate-300 break-words">{notification.message}</p>
+      <time className="block text-xs text-slate-500" dateTime={notification.createdAt}>{new Date(notification.createdAt).toLocaleString()}</time>
+      <div className="flex flex-wrap gap-4 text-xs">
+        {route && <Link className="text-teal-700 dark:text-teal-300 underline" to={route} onClick={() => onClick?.(notification)}>View related item</Link>}
+        {!notification.read && onMarkRead && <button className="text-teal-700 dark:text-teal-300 underline disabled:opacity-50" disabled={busy} onClick={() => onMarkRead(notification.id)}>Mark as read</button>}
       </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <h4
-            className={`text-sm ${
-              notification.read ? 'font-medium text-slate-800' : 'font-bold text-slate-900'
-            }`}
-          >
-            {notification.title}
-          </h4>
-          <span className="text-[11px] text-slate-400 shrink-0">
-            {new Date(notification.createdAt).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </span>
-        </div>
-        <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">{notification.message}</p>
-      </div>
-
-      {!notification.read && onMarkRead && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onMarkRead(notification.id);
-          }}
-          className="p-1 rounded-md text-teal-600 hover:bg-teal-100/50 shrink-0"
-          title="Mark as read"
-        >
-          <Circle className="w-2.5 h-2.5 fill-teal-600" />
-        </button>
-      )}
     </div>
-  );
+  </article>;
 };
