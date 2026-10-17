@@ -1,0 +1,41 @@
+plugins { id 'com.android.application' }
+def cfg = new Properties()
+def configFile = rootProject.file('healthconnect.properties')
+if (configFile.exists()) configFile.withInputStream { cfg.load(it) }
+def quote = { value -> '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"' }
+android {
+    namespace 'com.healthconnect.android'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'com.healthconnect.android'
+        minSdk 26
+        targetSdk 36
+        versionCode 7
+        versionName '0.7.0'
+        buildConfigField 'String', 'API_BASE_URL', quote(cfg.getProperty('apiBaseUrl', ''))
+        buildConfigField 'String', 'FIREBASE_API_KEY', quote(cfg.getProperty('firebaseApiKey', ''))
+    }
+    buildFeatures { buildConfig true }
+    buildTypes {
+        debug {
+            applicationIdSuffix '.phase7demo'
+            versionNameSuffix '-demo'
+            buildConfigField 'boolean', 'DEMO_MODE', 'true'
+        }
+        release {
+            minifyEnabled false
+            buildConfigField 'boolean', 'DEMO_MODE', 'false'
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    lint { abortOnError true; checkReleaseBuilds true }
+}
+// A release without actual connection details must fail rather than ship a demo as live.
+tasks.matching { it.name == 'preReleaseBuild' }.configureEach {
+    doFirst {
+        def base = cfg.getProperty('apiBaseUrl', '')
+        if (!base.startsWith('https://') || base.contains('example.com') || !cfg.getProperty('firebaseApiKey', '').startsWith('AIza')) {
+            throw new GradleException('Configure a real HTTPS apiBaseUrl and Firebase web API key in healthconnect.properties before building release.')
+        }
+    }
+}

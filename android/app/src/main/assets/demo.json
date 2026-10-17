@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "profile": {"fullName": "Demo Patient", "phoneNumber": "+91 9000000000"},
+  "doctors": [
+    {"id":"android-doc-1","name":"Dr. Asha Mehta","specialization":"General Physician","hospitalAffiliation":"Demo Wellness Clinic, Pune","consultationFee":500},
+    {"id":"android-doc-2","name":"Dr. Ravi Desai","specialization":"Cardiology","hospitalAffiliation":"Demo City Hospital, Pune","consultationFee":900},
+    {"id":"android-doc-3","name":"Dr. Nisha Rao","specialization":"Dermatology","hospitalAffiliation":"Demo Care Center, Pune","consultationFee":700}
+  ],
+  "centers":[{"id":"android-lab-1","name":"Demo Central Lab","address":"Shivajinagar, Pune"},{"id":"android-lab-2","name":"Demo West Lab","address":"Baner, Pune"}],
+  "tests":[{"id":"android-test-1","name":"Complete Blood Count","price":350,"homeCollectionAvailable":true},{"id":"android-test-2","name":"ECG","price":500,"homeCollectionAvailable":false}],
+  "medicines":[{"id":"android-med-1","name":"Demo first aid kit","price":180,"inStock":true,"requiresPrescription":false},{"id":"android-med-2","name":"Demo prescription item","price":250,"inStock":true,"requiresPrescription":true}],
+  "hospitals":[{"id":"android-h-1","name":"Demo City Hospital","address":"Central Pune","phoneNumber":"","specializations":"General medicine, cardiology","emergencyAvailable":true}],
+  "bloodBanks":[{"id":"android-b-1","name":"Demo Blood Center","address":"Pune","phoneNumber":"","bloodGroups":"A+, B+, O+, AB+","availability":"Sample inventory; contact a verified center for actual stock"}],
+  "appointments":[],"bookings":[],"records":[],"orders":[],"emergencies":[],"notifications":[],"policies":[],"claims":[]
+}
