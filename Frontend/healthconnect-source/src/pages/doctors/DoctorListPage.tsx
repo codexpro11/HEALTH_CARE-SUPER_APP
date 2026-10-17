@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { doctorApi } from '../../api/doctorApi';
 import { appointmentApi } from '../../api/appointmentApi';
-import { availableTimes, localDate, dateAfterDays, validateBooking } from '../../lib/frontend';
+import { availableTimes, localDate, dateAfterDays, validateBooking, demoSchedule } from '../../lib/frontend';
 import { errorMessage } from '../../lib/request';
 import { Doctor, ConsultationType } from '../../types';
 import { DoctorCard } from '../../components/doctors/DoctorCard';
@@ -83,10 +83,11 @@ export const DoctorListPage: React.FC = () => {
   });
 
   const handleOpenBooking = (doctor: Doctor) => {
-    setSelectedDoctor(doctor);
-    const date = doctor.timeSlots.find(slot => slot.available && !validateBooking(slot.date, slot.time))?.date ?? dateAfterDays(1);
+    const scheduledDoctor = demoSchedule(doctor);
+    setSelectedDoctor(scheduledDoctor);
+    const date = scheduledDoctor.timeSlots.find(slot => slot.available && !validateBooking(slot.date, slot.time))?.date ?? dateAfterDays(1);
     setBookingDate(date);
-    setBookingSlot(availableTimes(doctor, date)[0] ?? '');
+    setBookingSlot(availableTimes(scheduledDoctor, date)[0] ?? '');
     setBookingError(null);
     bookMutation.reset();
     setBookingType(doctor.consultationTypes.includes('VIDEO') ? 'VIDEO' : 'IN_PERSON');
