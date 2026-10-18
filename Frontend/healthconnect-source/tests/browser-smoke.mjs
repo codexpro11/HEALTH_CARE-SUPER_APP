@@ -31,6 +31,10 @@ try {
   await page.getByRole('button', { name: 'Book', exact: true }).first().waitFor();
   assert.equal(await page.getByRole('button', { name: 'Book', exact: true }).count(), 1);
   await page.getByRole('button', { name: 'Book', exact: true }).click();
+  const timeSlot = page.getByLabel('Available Time Slot', { exact: true });
+  const availableOptions = await timeSlot.locator('option').evaluateAll(options => options.map(option => option.value).filter(Boolean));
+  assert.ok(availableOptions.length > 0, 'Booking dialog should expose a current available demo time.');
+  await timeSlot.selectOption(availableOptions[0]);
   await page.getByRole('button', { name: 'Confirm & Schedule' }).click();
   await page.waitForURL('**/app/appointments');
   await page.getByRole('button', { name: 'Cancel', exact: true }).first().click();

@@ -4,17 +4,22 @@ import { MedicalRecord } from '../../types';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
+import { RecordSharing } from './RecordSharing';
 
 export interface MedicalRecordCardProps {
   record: MedicalRecord;
   onView?: (record: MedicalRecord) => void;
   onDownload?: (record: MedicalRecord) => void;
+  onArchive?: (record: MedicalRecord) => void;
+  isUpdating?: boolean;
 }
 
 export const MedicalRecordCard: React.FC<MedicalRecordCardProps> = ({
   record,
   onView,
   onDownload,
+  onArchive,
+  isUpdating,
 }) => {
   const confidentialityBadge = {
     STANDARD: { label: 'Standard Protected', variant: 'slate' as const },
@@ -30,7 +35,7 @@ export const MedicalRecordCard: React.FC<MedicalRecordCardProps> = ({
             <FileText className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-teal-700">
                 {record.recordType.replace(/_/g, ' ')}
               </span>
@@ -39,13 +44,13 @@ export const MedicalRecordCard: React.FC<MedicalRecordCardProps> = ({
                 {confidentialityBadge.label}
               </Badge>
             </div>
-            <h4 className="text-base font-bold text-slate-900 mt-0.5">{record.title}</h4>
-            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+            <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 mt-0.5">{record.title}</h4>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
                 {record.date}
               </span>
-              <span>•</span>
+              <span></span>
               <span className="flex items-center gap-1">
                 <UserCheck className="w-3.5 h-3.5 text-slate-400" />
                 {record.doctorName}
@@ -60,9 +65,10 @@ export const MedicalRecordCard: React.FC<MedicalRecordCardProps> = ({
         </div>
       </div>
 
-      <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed">
+      <p className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 leading-relaxed">
         {record.summary}
       </p>
+      <RecordSharing record={record} compact />
 
       <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -79,7 +85,10 @@ export const MedicalRecordCard: React.FC<MedicalRecordCardProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {onArchive && <Button variant="ghost" size="sm" disabled={isUpdating} onClick={() => onArchive(record)}>
+            {record.status === 'ARCHIVED' ? 'Restore' : 'Archive'}
+          </Button>}
           <Button
             variant="outline"
             size="sm"
@@ -92,6 +101,7 @@ export const MedicalRecordCard: React.FC<MedicalRecordCardProps> = ({
             variant="secondary"
             size="sm"
             leftIcon={<Download className="w-3.5 h-3.5" />}
+            disabled={!record.fileUrl && !record.originalFileName}
             onClick={() => onDownload?.(record)}
           >
             Download
@@ -101,3 +111,4 @@ export const MedicalRecordCard: React.FC<MedicalRecordCardProps> = ({
     </Card>
   );
 };
+

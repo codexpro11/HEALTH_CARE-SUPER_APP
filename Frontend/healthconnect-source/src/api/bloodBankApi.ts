@@ -36,10 +36,12 @@ export const bloodBankApi = {
     return executeWithFallback(
       () => apiClient.get(`/api/v1/blood-banks/${id}`),
       () => {
-        const found = mockBloodBanks.find((b) => b.id === id) || mockBloodBanks[0];
+        const found = mockBloodBanks.find((b) => b.id === id);
+        if (!found) throw new Error('Blood bank unavailable.');
         return found;
       },
       'Blood bank details retrieved'
     );
   },
 };
+

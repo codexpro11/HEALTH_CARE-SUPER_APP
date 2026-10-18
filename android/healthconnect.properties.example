@@ -1,0 +1,4 @@
+# Copy to healthconnect.properties for live builds. Public Firebase web API key only.
+# Never put a Firebase Admin/service-account key in this app.
+apiBaseUrl=https://your-spring-boot-api.example.com
+firebaseApiKey=YOUR_FIREBASE_WEB_API_KEY

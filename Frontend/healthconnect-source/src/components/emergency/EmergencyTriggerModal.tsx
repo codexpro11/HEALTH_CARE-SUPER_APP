@@ -1,108 +1,87 @@
-import React, { useState } from 'react';
-import { Siren, MapPin, AlertCircle, PhoneCall, ShieldAlert, Loader2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MapPin, Siren } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { useEmergencyStore } from '../../stores/emergencyStore';
-import { useNavigate } from 'react-router-dom';
+import { emergencyTypes, validateSos, type SosInput } from '../../lib/emergencyRules';
+import { isDemoMode } from '../../lib/demo';
 
-export const EmergencyTriggerModal: React.FC = () => {
-  const { isTriggerModalOpen, setIsTriggerModalOpen, triggerSOS, isActive, stage } =
-    useEmergencyStore();
-  const [emergencyType, setEmergencyType] = useState('Severe Cardiac / Chest Distress');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export function EmergencyTriggerModal() {
+  const { isTriggerModalOpen, setIsTriggerModalOpen, triggerSOS, isActive, busy, error } = useEmergencyStore();
+  const [input, setInput] = useState<SosInput>({ clientRequestId: '', emergencyType: emergencyTypes[0], address: '', locationSource: 'MANUAL' });
+  const [locating, setLocating] = useState(false);
+  const [locationMessage, setLocationMessage] = useState('');
+  const [formError, setFormError] = useState('');
+  const attempt = useRef(0);
   const navigate = useNavigate();
-
-  const handleActivate = async () => {
-    setIsSubmitting(true);
-    await triggerSOS(emergencyType);
-    setIsSubmitting(false);
-    navigate('/app/emergency');
+  useEffect(() => {
+    attempt.current++;
+    setLocating(false);
+    setLocationMessage('');
+    setFormError('');
+    if (isTriggerModalOpen) setInput({ clientRequestId: crypto.randomUUID(), emergencyType: emergencyTypes[0], address: '', locationSource: 'MANUAL' });
+    return () => { attempt.current++; };
+  }, [isTriggerModalOpen]);
+  const locate = () => {
+    const token = ++attempt.current;
+    if (!navigator.geolocation || !window.isSecureContext) {
+      setLocationMessage('Device location is unavailable. Enter an address or landmark below.');
+      return;
+    }
+    setLocating(true);
+    setLocationMessage('Waiting for device location. You can also enter a manual location.');
+    navigator.geolocation.getCurrentPosition(position => {
+      if (token !== attempt.current) return;
+      setInput(current => ({ ...current, latitude: position.coords.latitude, longitude: position.coords.longitude, accuracyMeters: position.coords.accuracy, locationCapturedAt: new Date(position.timestamp).toISOString(), locationSource: 'GPS' }));
+      setLocationMessage('Device location captured. Accuracy: about ' + Math.round(position.coords.accuracy) + ' m. Add an address or landmark below.');
+      setLocating(false);
+    }, failure => {
+      if (token !== attempt.current) return;
+      setLocating(false);
+      setLocationMessage((failure.code === 1 ? 'Location permission denied.' : failure.code === 3 ? 'Location request timed out.' : 'Device location unavailable.') + ' Enter an address or landmark below.');
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
   };
-
-  const emergencyOptions = [
-    'Severe Cardiac / Chest Distress',
-    'Sudden Breathing Difficulty / Asthma',
-    'Severe Trauma / Accident / Fall',
-    'Unconscious / Stroke Symptoms',
-    'Acute Poisoning / Allergic Reaction',
-    'Other Critical Distress',
-  ];
-
-  return (
-    <Modal
-      isOpen={isTriggerModalOpen}
-      onClose={() => setIsTriggerModalOpen(false)}
-      maxWidth="md"
-      title="EMERGENCY DISPATCH PROTOCOL"
-    >
-      <div className="space-y-4 text-left">
-        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3">
-          <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-          <div className="text-xs text-rose-900">
-            <p className="font-bold">Life-Threatening Emergency Notice</p>
-            <p className="mt-0.5 text-rose-700">
-              Activating SOS broadcasts GPS telemetry to municipal ambulance networks and alerts nearby ICU facilities immediately.
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-            Select Medical Condition
-          </label>
-          <div className="space-y-1.5">
-            {emergencyOptions.map((opt) => (
-              <label
-                key={opt}
-                className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-colors ${
-                  emergencyType === opt
-                    ? 'border-rose-300 bg-rose-50/70 text-rose-950 font-bold'
-                    : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="emergency-type"
-                  checked={emergencyType === opt}
-                  onChange={() => setEmergencyType(opt)}
-                  className="text-rose-600 focus:ring-rose-500"
-                />
-                <span>{opt}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="p-3 bg-slate-50 rounded-xl text-xs space-y-1 text-slate-600">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-3.5 h-3.5 text-slate-500" />
-            <span>Broadcasting from: <strong>742 Evergreen Terrace, Metro City</strong></span>
-          </div>
-          <div className="flex items-center gap-2 text-slate-500 text-[11px]">
-            <span>Estimated nearest paramedic arrival: ~5-7 minutes</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 pt-2">
-          <Button
-            variant="outline"
-            className="w-1/3"
-            onClick={() => setIsTriggerModalOpen(false)}
-          >
-            Cancel
-          </Button>
-
-          <Button
-            variant="danger"
-            className="w-2/3 py-3 font-bold text-sm bg-rose-600 hover:bg-rose-700 shadow-lg"
-            isLoading={isSubmitting}
-            leftIcon={<Siren className="w-4 h-4 animate-bounce" />}
-            onClick={handleActivate}
-          >
-            {isActive ? 'Go to Live Tracking' : 'CONFIRM SOS DISPATCH'}
-          </Button>
-        </div>
+  const manual = () => {
+    attempt.current++;
+    setLocating(false);
+    setInput(current => ({ ...current, locationSource: 'MANUAL', latitude: undefined, longitude: undefined, accuracyMeters: undefined, locationCapturedAt: undefined }));
+    setLocationMessage('Manual location selected. No device coordinates will be saved.');
+  };
+  const confirm = async () => {
+    if (isActive) { setIsTriggerModalOpen(false); navigate('/app/emergency'); return; }
+    const invalid = validateSos(input);
+    setFormError(invalid ?? '');
+    if (!invalid && await triggerSOS(input)) navigate('/app/emergency');
+  };
+  return <Modal isOpen={isTriggerModalOpen} onClose={() => { if (!busy) setIsTriggerModalOpen(false); }} title={isDemoMode ? 'Create a demo SOS request' : 'Confirm emergency request'} maxWidth="md">
+    <div className="space-y-4">
+      <div className="p-4 rounded-xl bg-rose-50 text-rose-900 dark:bg-rose-950 dark:text-rose-200 text-sm space-y-2">
+        <p className="font-bold">{isDemoMode ? 'Demo only - no emergency services are contacted.' : 'A request does not confirm ambulance dispatch.'}</p>
+        <a href="tel:112" className="font-bold underline">Call 112 in India for emergency assistance</a>
       </div>
-    </Modal>
-  );
-};
+      {isActive ? <p>A request is already active for your account. Open it to view the saved status.</p> : <>
+        <label className="block text-sm font-semibold">Emergency type
+          <select className="block w-full rounded-lg border p-3 mt-2 dark:bg-slate-900" value={input.emergencyType} onChange={e => setInput(current => ({ ...current, emergencyType: e.target.value }))}>
+            {emergencyTypes.map(type => <option key={type}>{type}</option>)}
+          </select>
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={locate} isLoading={locating} disabled={busy} leftIcon={<MapPin className="w-4 h-4" />}>Use device location</Button>
+          <Button variant="ghost" onClick={manual} disabled={busy}>Use manual location</Button>
+        </div>
+        {locationMessage && <p role="status" className="text-sm text-slate-500">{locationMessage}</p>}
+        {input.locationSource === 'GPS' && <p className="text-xs font-mono">{input.latitude?.toFixed(5)}, {input.longitude?.toFixed(5)}</p>}
+        <label className="block text-sm font-semibold">Location or landmark
+          <textarea className="block w-full rounded-lg border p-3 mt-2 dark:bg-slate-900" rows={3} maxLength={500} value={input.address} onChange={e => setInput(current => ({ ...current, address: e.target.value }))} placeholder="Building, street, area and city" />
+        </label>
+        <p className="text-xs text-slate-500">Location is saved only when you confirm. Your saved emergency contact is not automatically notified.</p>
+      </>}
+      {(formError || error) && <p role="alert" className="text-sm text-rose-700 dark:text-rose-300">{formError || error}</p>}
+      <div className="flex flex-wrap gap-3">
+        <Button variant="outline" disabled={busy} onClick={() => setIsTriggerModalOpen(false)}>Close</Button>
+        <Button variant="danger" isLoading={busy} disabled={locating} onClick={confirm} leftIcon={<Siren className="w-4 h-4" />}>{isActive ? 'View active request' : isDemoMode ? 'Confirm demo SOS' : 'Confirm SOS request'}</Button>
+      </div>
+    </div>
+  </Modal>;
+}

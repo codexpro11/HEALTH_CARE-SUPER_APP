@@ -145,6 +145,8 @@ export interface Appointment {
   meetingLink?: string;
   roomNumber?: string;
   notes?: string;
+  consultation?: { notes: string; prescription: string; updatedAt: string };
+  providerTimeline?: { status: AppointmentStatus; at: string }[];
   createdAt: string;
   updatedAt?: string;
 }
@@ -185,6 +187,8 @@ export interface MedicalRecord {
   fileUrl?: string;
   fileSize?: string;
   fileType?: string;
+  fileMimeType?: string;
+  originalFileName?: string;
   tags: string[];
   confidentialityLevel: 'STANDARD' | 'RESTRICTED' | 'CONFIDENTIAL';
 }
@@ -225,6 +229,7 @@ export interface Prescription {
 }
 
 export type DiagnosticBookingStatus =
+  | 'CANCELLED'
   | 'BOOKED'
   | 'SAMPLE_COLLECTION'
   | 'PROCESSING'
@@ -325,6 +330,7 @@ export interface PharmacyOrder {
   finalAmount: number;
   deliveryAddress: string;
   prescriptionUploaded?: boolean;
+  prescriptionRecordId?: string;
   status: OrderStatus;
   paymentMethod: 'CARD' | 'UPI' | 'CASH_ON_DELIVERY' | 'INSURANCE' | 'COD';
   createdAt: string;
@@ -373,19 +379,25 @@ export interface BloodBank {
   }[];
 }
 
-export type EmergencyStatus = 'PENDING' | 'DISPATCHED' | 'EN_ROUTE' | 'ARRIVED' | 'RESOLVED';
+export type EmergencyStatus = 'PENDING' | 'DISPATCHED' | 'EN_ROUTE' | 'ARRIVED' | 'RESOLVED' | 'CANCELLED';
 
 export interface EmergencyRequest {
   id: string;
+  clientRequestId?: string;
   patientId: string;
   patientName: string;
   patientPhone: string;
   emergencyType: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
+  locationSource?: 'GPS' | 'MANUAL';
+  accuracyMeters?: number;
+  locationCapturedAt?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
   address: string;
   status: EmergencyStatus;
-  etaMinutes: number;
+  etaMinutes?: number;
   ambulance?: {
     vehicleNumber: string;
     paramedicName: string;
@@ -411,6 +423,7 @@ export type NotificationType =
   | 'LabReportReady'
   | 'MedicineOrderShipped'
   | 'EmergencyRequestCreated'
+  | 'EmergencyRequestCancelled'
   | 'PaymentSuccessful';
 
 export interface AppNotification {
