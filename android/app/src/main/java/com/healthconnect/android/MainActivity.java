@@ -41,6 +41,7 @@ public final class MainActivity extends Activity {
     private static final int PICK_FILE=51,EXPORT_FILE=52;
 
     @Override public void onCreate(Bundle saved) {
+        setTheme(getPreferences(MODE_PRIVATE).getBoolean("dark-theme",false)?R.style.AppThemeDark:R.style.AppTheme);
         super.onCreate(saved); getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);ui=new Ui(this);device=new DeviceWorkflows(this);
         if(Build.VERSION.SDK_INT>=33)getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,this::back);
         try{store=new SecureStore(this);}catch(Exception error){ui.message("Secure storage unavailable","HealthConnect cannot open secure storage. Restart the app. Existing files were not replaced.");return;}
@@ -65,26 +66,57 @@ public final class MainActivity extends Activity {
     void message(String title,String text){ui.message(title,text);}
     private void frame(String title){
         screen++;device.stop();if(sensitiveDialog!=null)sensitiveDialog.dismiss();
-        root=ui.column();root.setBackgroundColor(Ui.BG);
+        root=ui.column();root.setBackgroundColor(ui.background);
+        getWindow().setStatusBarColor(ui.surface);getWindow().setNavigationBarColor(ui.background);
+        getWindow().getDecorView().setSystemUiVisibility(ui.dark?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
         if(Build.VERSION.SDK_INT>=30)root.setOnApplyWindowInsetsListener((v,insets)->{
             android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());
             android.graphics.Insets keyboard=insets.getInsets(WindowInsets.Type.ime());v.setPadding(bars.left,bars.top,bars.right,Math.max(bars.bottom,keyboard.bottom));return insets;
         });
-        // API 26–29 use legacy insets; API 30+ reports IME and edge-to-edge system bars.
         else root.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});
-        LinearLayout header=ui.column();header.setPadding(ui.dp(20),ui.dp(12),ui.dp(20),ui.dp(8));root.addView(header);
-        ui.text(header,"✚  HealthConnect",20,true).setTextColor(Ui.TEAL);
-        if(BuildConfig.DEMO_MODE)ui.note(header,"ANDROID DEMO · Saved on this device · No services contacted");
-        else ui.note(header,"Connected to your healthcare account");
-        ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);body=ui.column();body.setPadding(ui.dp(20),ui.dp(4),ui.dp(20),ui.dp(20));scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-        screenLabel=ui.text(body,title,28,true);if(Build.VERSION.SDK_INT>=28)screenLabel.setAccessibilityHeading(true);
-        if(session!=null){
-            LinearLayout nav=new LinearLayout(this);nav.setPadding(ui.dp(4),ui.dp(4),ui.dp(4),ui.dp(4));nav.setBackgroundColor(Color.WHITE);
-            String[] labels=Rules.patient(session.role)?new String[]{"Home","Records","SOS","Inbox","More"}:new String[]{"Home","NFC","More"};
-            String[] routes=Rules.patient(session.role)?new String[]{"home","records","emergency","notifications","more"}:new String[]{"home","scanner","more"};
-            for(int i=0;i<labels.length;i++){String next=routes[i];Button button=new Button(this);button.setText(labels[i]);button.setAllCaps(false);button.setTextSize(11);button.setMinWidth(0);button.setPadding(0,0,0,0);button.setTextColor(Ui.TEAL);button.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.WHITE));nav.addView(button,new LinearLayout.LayoutParams(0,ui.dp(52),1));button.setOnClickListener(v->go(next));}root.addView(nav);
+        LinearLayout header=ui.row();header.setPadding(ui.dp(8),ui.dp(8),ui.dp(8),ui.dp(8));header.setBackgroundColor(ui.surface);
+        if(session!=null)header.addView(ui.iconButton("menu","Open navigation menu",this::navigation),new LinearLayout.LayoutParams(ui.dp(48),ui.dp(48)));
+        FrameLayout logo=new FrameLayout(this);logo.setBackground(ui.shape(Ui.TEAL,8));logo.addView(ui.icon("plus",Color.WHITE),new FrameLayout.LayoutParams(ui.dp(20),ui.dp(20),Gravity.CENTER));
+        header.addView(logo,new LinearLayout.LayoutParams(ui.dp(32),ui.dp(32)));
+        TextView brand=ui.text(header,session==null||getResources().getConfiguration().screenWidthDp>=600?"HealthConnect":"",17,true);brand.setPadding(ui.dp(8),0,0,0);brand.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));logo.setContentDescription("HealthConnect");
+        header.addView(ui.iconButton(ui.dark?"moon":"sun","Toggle colour theme",this::toggleTheme),new LinearLayout.LayoutParams(ui.dp(48),ui.dp(48)));
+        if(session!=null&&Rules.patient(session.role)){
+            header.addView(ui.iconButton("bag","Open pharmacy",()->go("pharmacy")),new LinearLayout.LayoutParams(ui.dp(48),ui.dp(48)));
+            FrameLayout inbox=new FrameLayout(this);inbox.addView(ui.iconButton("bell","Notifications",()->go("notifications")),new FrameLayout.LayoutParams(-1,-1));
+            TextView unread=new TextView(this);unread.setTextColor(Color.WHITE);unread.setTextSize(10);unread.setGravity(Gravity.CENTER);unread.setBackground(ui.shape(Ui.RED,12));unread.setVisibility(View.GONE);unread.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            FrameLayout.LayoutParams count=new FrameLayout.LayoutParams(ui.dp(20),ui.dp(18),Gravity.TOP|Gravity.END);count.setMargins(0,ui.dp(2),ui.dp(1),0);inbox.addView(unread,count);header.addView(inbox,new LinearLayout.LayoutParams(ui.dp(48),ui.dp(48)));
+            header.addView(ui.iconButton("user","My profile",()->go("profile")),new LinearLayout.LayoutParams(ui.dp(48),ui.dp(48)));
+            Repository current=repo;load(()->{try{JSONArray rows=current.list("notifications","/api/v1/notifications");int n=0;for(int i=0;i<rows.length();i++)if(!rows.optJSONObject(i).optBoolean("read"))n++;return n;}catch(Exception unavailable){return 0;}},n->{if(n>0){unread.setText(n>99?"99+":String.valueOf(n));unread.setVisibility(View.VISIBLE);}inbox.setContentDescription("Notifications"+(n>0?", "+n+" unread":""));});
         }
+        root.addView(header);View rule=new View(this);rule.setBackgroundColor(ui.border);root.addView(rule,new LinearLayout.LayoutParams(-1,ui.dp(1)));
+        ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);
+        body=ui.column();body.setPadding(ui.dp(24),ui.dp(20),ui.dp(24),ui.dp(28));scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        if(BuildConfig.DEMO_MODE){TextView demo=ui.text(body,"DEMO  ·  Saved on this device",11,true);demo.setTextColor(ui.accent);demo.setPadding(ui.dp(10),ui.dp(6),ui.dp(10),ui.dp(6));demo.setBackground(ui.shape(ui.tealSoft,8));LinearLayout.LayoutParams dp=new LinearLayout.LayoutParams(-2,-2);dp.setMargins(0,0,0,ui.dp(18));demo.setLayoutParams(dp);}
+        screenLabel=ui.text(body,title,24,true);if(Build.VERSION.SDK_INT>=28)screenLabel.setAccessibilityHeading(true);
         setContentView(root);root.requestApplyInsets();
+    }
+    private void toggleTheme(){
+        getPreferences(MODE_PRIVATE).edit().putBoolean("dark-theme",!ui.dark).apply();ui=new Ui(this);
+        setTheme(ui.dark?R.style.AppThemeDark:R.style.AppTheme);
+        if(session==null)login();else go(route);
+    }
+    /** Same mobile drawer destinations and active treatment as the web AppLayout. */
+    private void navigation(){
+        Dialog drawer=new Dialog(this);LinearLayout panel=ui.column();panel.setBackgroundColor(ui.surface);panel.setPadding(ui.dp(16),ui.dp(20),ui.dp(16),ui.dp(20));
+        LinearLayout heading=ui.row();TextView brand=ui.text(heading,"HealthConnect",20,true);brand.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));heading.addView(ui.iconButton("close","Close navigation menu",drawer::dismiss),new LinearLayout.LayoutParams(ui.dp(48),ui.dp(48)));panel.addView(heading);ui.divider(panel);
+        if(Rules.patient(session.role)){Button sos=ui.button(panel,"Emergency SOS",()->{drawer.dismiss();go("emergency");});sos.setBackground(ui.ripple(Ui.RED,12));}
+        ScrollView scroll=new ScrollView(this);LinearLayout links=ui.column();scroll.addView(links);panel.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        String[][] items=Rules.patient(session.role)?new String[][]{
+            {"Dashboard","home","activity"},{"Doctors","doctors","doctor"},{"Appointments","appointments","calendar"},
+            {"NFC Card & Consent","nfc","nfc"},{"Medical Records","records","file"},{"Insurance","insurance","shield"},
+            {"Pharmacy","pharmacy","bag"},{"Diagnostics","diagnostics","lab"},{"Lab bookings","bookings","calendar"},
+            {"Orders","orders","bag"},{"Hospitals","hospitals","hospital"},{"Blood Banks","bloodBanks","drop"},
+            {"Notifications","notifications","bell"},{"Profile","profile","user"},{"More","more","menu"}
+        }:new String[][]{{"Dashboard","home","activity"},{"NFC Scanner","scanner","nfc"},{"More","more","menu"}};
+        for(String[] item:items)ui.navigation(links,item[0],item[2],route.equals(item[1]),()->{drawer.dismiss();go(item[1]);});
+        ui.divider(panel);ui.note(panel,session.email);ui.secondary(panel,"Sign out",()->{drawer.dismiss();ui.confirm("Sign out?","Private screens and active device workflows will close.",this::logout);});
+        drawer.setContentView(panel);Window window=drawer.getWindow();if(window!=null){window.setBackgroundDrawableResource(android.R.color.transparent);window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);window.setGravity(Gravity.START);window.setDimAmount(.4f);window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);}
+        drawer.show();if(window!=null)window.setLayout(Math.min(ui.dp(320),(int)(getResources().getDisplayMetrics().widthPixels*.9f)),-1);
     }
     private <T> void load(Callable<T> task,Consumer<T> success){execute(task,success,false);}
     private <T> void mutate(Callable<T> task,Consumer<T> success){if(mutationPending){Toast.makeText(this,"Wait for the current action to finish.",Toast.LENGTH_SHORT).show();return;}execute(task,success,true);}
@@ -103,18 +135,19 @@ public final class MainActivity extends Activity {
     }
     private void login(){
         frame("Your health, connected");ui.note(body,"Manage appointments, health documents and your emergency information.");LinearLayout card=ui.card(body);
+        if(!BuildConfig.DEMO_MODE){ui.text(card,"Welcome back",22,true);ui.note(card,"Sign in to your HealthConnect account.");}
         if(BuildConfig.DEMO_MODE){
             ui.text(card,"Explore the Android app",20,true);ui.note(card,"Sample accounts are separate. Local medical documents and demo actions are encrypted on this device.");
             ui.button(card,"Continue as demo patient",()->demo("patient@healthconnect.demo","PATIENT"));
-            ui.button(card,"Use second patient account",()->demo("second@healthconnect.demo","PATIENT"));
-            ui.button(card,"Open doctor NFC workspace",()->demo("doctor@healthconnect.demo","DOCTOR"));return;
+            ui.secondary(card,"Use second patient account",()->demo("second@healthconnect.demo","PATIENT"));
+            ui.secondary(card,"Open doctor NFC workspace",()->demo("doctor@healthconnect.demo","DOCTOR"));return;
         }
         EditText email=ui.input(card,"Email","",android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
         EditText password=ui.input(card,"Password","",android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
         CheckBox remember=ui.check(card,"Remember this account on this device",false);
         ui.button(card,"Sign in",()->authenticate(email,password,remember,false));
-        ui.button(card,"Create patient account",()->authenticate(email,password,remember,true));
-        ui.button(card,"Reset password",()->{
+        ui.secondary(card,"Create patient account",()->authenticate(email,password,remember,true));
+        ui.secondary(card,"Reset password",()->{
             String mail=email.getText().toString().trim();if(!mail.contains("@")){message("Email needed","Enter your email address first.");return;}
             mutate(()->Transport.json("https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key="+Transport.segment(BuildConfig.FIREBASE_API_KEY),"POST",Json.object("requestType","PASSWORD_RESET","email",mail),Json.map()),v->message("Password reset","If the account is eligible, Firebase will send a reset link."));
         });
@@ -149,17 +182,71 @@ public final class MainActivity extends Activity {
         }
     }
     private void home(){
-        frame(Rules.patient(session.role)?"Good to see you":"Provider workspace");ui.note(body,session.email);
-        if(!Rules.patient(session.role)){LinearLayout card=ui.card(body);ui.text(card,"NFC access",21,true);ui.note(card,"Read an opaque card identifier, then request authorized access. A card alone does not grant access to records.");ui.button(card,"Open NFC scanner",()->go("scanner"));ui.note(body,"Consultation management remains available in the existing web provider workspace.");return;}
-        LinearLayout hero=ui.card(body);hero.setBackground(ui.shape(Ui.TEAL,20));ui.text(hero,"Care that stays with you",24,true).setTextColor(Color.WHITE);ui.text(hero,"Appointments, documents and support in one place.",15,false).setTextColor(Color.WHITE);
-        ui.button(body,"Find a doctor",()->go("doctors"));ui.button(body,"My appointments",()->go("appointments"));ui.button(body,"Book a lab test",()->go("diagnostics"));ui.button(body,"Pharmacy",()->go("pharmacy"));ui.button(body,"NFC health card",()->go("nfc"));ui.button(body,"Insurance",()->go("insurance"));
-        if(BuildConfig.DEMO_MODE)ui.note(body,"Android and web demos have separate local data. No payment, dispatch, clinical review or insurer submission occurs.");
+        frame(Rules.patient(session.role)?"Welcome back":"Provider workspace");
+        if(!Rules.patient(session.role)){LinearLayout c=ui.card(body);ui.section(c,"NFC access",null,null);ui.note(c,"Read a card identifier, then request authorized access.");ui.button(c,"Open NFC scanner",()->go("scanner"));ui.note(body,"Consultation management is available in the web provider workspace.");return;}
+        TextView subtitle=ui.text(body,"Your health, all in one place.",14,false);subtitle.setTextColor(ui.muted);
+        // The web uses two columns on phones and four from the small-tablet breakpoint.
+        boolean wide=getResources().getConfiguration().screenWidthDp>=600;
+        LinearLayout actions=ui.row();actions.setGravity(Gravity.TOP);body.addView(actions);
+        ui.shortcut(actions,"Book Visit","calendar",Ui.BLUE,0xffeff6ff,()->go("appointments"));
+        ui.shortcut(actions,"Find Doctor","doctor",Ui.GREEN,0xfff0fdf4,()->go("doctors"));
+        if(!wide){actions=ui.row();actions.setGravity(Gravity.TOP);body.addView(actions);}
+        ui.shortcut(actions,"Records","file",Ui.ORANGE,0xfffff7ed,()->go("records"));
+        ui.shortcut(actions,"Pharmacy","bag",Ui.PURPLE,0xfffaf5ff,()->go("pharmacy"));
+        LinearLayout columns=ui.row();columns.setGravity(Gravity.TOP);body.addView(columns);
+        LinearLayout primary=ui.column(),aside=ui.column();
+        if(wide){columns.addView(primary,new LinearLayout.LayoutParams(0,-2,2));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-2,1);p.setMargins(ui.dp(20),0,0,0);columns.addView(aside,p);}
+        else{columns.setOrientation(LinearLayout.VERTICAL);columns.addView(primary,new LinearLayout.LayoutParams(-1,-2));columns.addView(aside,new LinearLayout.LayoutParams(-1,-2));}
+        LinearLayout appointments=ui.card(primary);ui.section(appointments,"Upcoming Appointment","View All",()->go("appointments"));
+        LinearLayout appointmentContent=ui.column();appointments.addView(appointmentContent);ui.note(appointmentContent,"Loading your appointments…");
+        LinearLayout records=ui.card(primary);ui.section(records,"Recent Medical Records","View All",()->go("records"));
+        LinearLayout recordContent=ui.column();records.addView(recordContent);ui.note(recordContent,"Loading your records…");
+        LinearLayout services=ui.card(primary);ui.section(services,"Connected care",null,null);
+        ui.navigation(services,"NFC Health Card & Consent","nfc",false,()->go("nfc"));ui.navigation(services,"Insurance","shield",false,()->go("insurance"));ui.navigation(services,"Book a lab test","lab",false,()->go("diagnostics"));
+        LinearLayout stats=ui.card(aside);ui.section(stats,"Health Stats",null,null);
+        ui.stat(stats,"Heart Rate","heart",Ui.RED,0xfffef2f2);ui.stat(stats,"Blood Pressure","activity",Ui.BLUE,0xffeff6ff);ui.stat(stats,"Glucose Level","drop",Ui.ORANGE,0xfffff7ed);
+        ui.note(stats,"Readings will appear when health measurements are connected.");
+        LinearLayout tip=ui.card(aside);tip.setBackground(ui.shape(Ui.TEAL,16));ui.text(tip,"Health Tip of the Day",16,true).setTextColor(Color.WHITE);ui.text(tip,"Keep your health documents organised so you can find them before your next appointment.",14,false).setTextColor(Color.WHITE);
+        Repository current=repo;
+        load(()->current.profile(),profile->{String name=profile.optString("fullName","").trim();if(!name.isEmpty())screenLabel.setText("Welcome back, "+name.split("\\s+")[0]);});
+        dashboardLoad(appointmentContent,()->current.list("appointments","/api/v1/appointments"),rows->{
+            JSONObject next=null;LocalDateTime earliest=null;
+            for(int i=0;i<rows.length();i++){JSONObject a=rows.optJSONObject(i);if(a==null||!"CONFIRMED".equals(a.optString("status")))continue;
+                LocalDateTime order=appointmentStart(a);if(order==null||order.isBefore(LocalDateTime.now()))continue;
+                if(earliest==null||order.isBefore(earliest)){next=a;earliest=order;}}
+            if(next==null){ui.empty(appointmentContent,"calendar","No consultations scheduled","Find a doctor to book your next visit.");ui.secondary(appointmentContent,"Find a Doctor",()->go("doctors"));return;}
+            ui.badge(appointmentContent,next.optString("status"));ui.text(appointmentContent,next.optString("doctorName","Your doctor"),18,true);
+            ui.note(appointmentContent,next.optString("doctorSpecialization",next.optString("hospitalName","")));
+            ui.note(appointmentContent,"Date  ·  "+next.optString("appointmentDate")+"\nTime  ·  "+next.optString("appointmentTime"));
+            ui.button(appointmentContent,"View appointment",()->go("appointments"));subtitle.setText("Your next appointment is on "+next.optString("appointmentDate")+".");
+        });
+        dashboardLoad(recordContent,()->current.list("records","/api/v1/medical-records"),rows->{
+            int shown=0;for(int i=rows.length()-1;i>=0&&shown<3;i--){JSONObject r=rows.optJSONObject(i);if(r==null||"ARCHIVED".equals(r.optString("status")))continue;
+                ui.navigation(recordContent,r.optString("title","Health document"),"file",false,()->go("records"));ui.note(recordContent,r.optString("provider",r.optString("recordType","Document"))+" · "+r.optString("recordDate",r.optString("date","")));shown++;}
+            if(shown==0)ui.empty(recordContent,"file","No records yet","Upload and manage your health documents here.");
+        });
+        if(BuildConfig.DEMO_MODE)ui.note(body,"Sample account · No payment, dispatch or insurer submission. Android and web demo data are separate.");
     }
-    private void more(){frame("Your workspace");ui.note(body,session.email+" · "+session.role);
+    /** Each dashboard panel owns its loading/error state; stale results use the existing screen guard. */
+    private LocalDateTime appointmentStart(JSONObject appointment){
+        try{
+            String time=appointment.optString("appointmentTime").trim();LocalTime parsed;
+            try{parsed=LocalTime.parse(time);}catch(Exception twentyFourHour){parsed=LocalTime.parse(time.toUpperCase(Locale.US),java.time.format.DateTimeFormatter.ofPattern("h:mm a",Locale.US));}
+            return LocalDateTime.of(LocalDate.parse(appointment.optString("appointmentDate")),parsed);
+        }catch(Exception invalid){return null;}
+    }
+    private void dashboardLoad(LinearLayout target,Callable<JSONArray> task,Consumer<JSONArray> render){
+        load(()->{try{return new Object[]{task.call(),null};}catch(Exception e){return new Object[]{null,e};}},result->{
+            target.removeAllViews();
+            if(result[1]!=null){ui.note(target,"Unable to load this section. Check your connection and try again.");ui.secondary(target,"Retry",()->dashboardLoad(target,task,render));}
+            else render.accept((JSONArray)result[0]);
+        });
+    }
+    private void more(){frame("Your workspace");ui.note(body,session.email+" · "+session.role);LinearLayout links=ui.card(body);
         if(Rules.patient(session.role)){
-            ui.button(body,"My profile",()->go("profile"));ui.button(body,"My appointments",()->go("appointments"));ui.button(body,"Lab bookings",()->go("bookings"));ui.button(body,"Medicine orders",()->go("orders"));ui.button(body,"Hospitals",()->go("hospitals"));ui.button(body,"Blood banks",()->go("bloodBanks"));ui.button(body,"NFC & consent",()->go("nfc"));ui.button(body,"Insurance",()->go("insurance"));
+            ui.navigation(links,"My profile","user",false,()->go("profile"));ui.navigation(links,"My appointments","calendar",false,()->go("appointments"));ui.navigation(links,"Lab bookings","lab",false,()->go("bookings"));ui.navigation(links,"Medicine orders","bag",false,()->go("orders"));ui.navigation(links,"Hospitals","hospital",false,()->go("hospitals"));ui.navigation(links,"Blood banks","drop",false,()->go("bloodBanks"));ui.navigation(links,"NFC & consent","nfc",false,()->go("nfc"));ui.navigation(links,"Insurance","shield",false,()->go("insurance"));
         }
-        ui.button(body,"Sign out",()->ui.confirm("Sign out?","Private screens, active NFC reads, location capture and device notifications will close.",this::logout));
+        ui.secondary(body,"Sign out",()->ui.confirm("Sign out?","Private screens, active NFC reads, location capture and device notifications will close.",this::logout));
         ui.note(body,"Phase 7 · Quality and security\nAccount-bound encrypted storage and session validation. Device and live integration acceptance remain open. Google sign-in and FCM background push require further configuration.");
     }
     private void doctors(){
@@ -244,7 +331,7 @@ public final class MainActivity extends Activity {
         BitmapFactory.Options options=new BitmapFactory.Options();options.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(bytes,0,bytes.length,options);options.inSampleSize=1;while(Math.max(options.outWidth,options.outHeight)/options.inSampleSize>1600)options.inSampleSize*=2;options.inJustDecodeBounds=false;Bitmap bitmap=BitmapFactory.decodeByteArray(bytes,0,bytes.length,options);if(bitmap==null)throw new IOException("Image preview is unavailable.");return bitmap;
     },bitmap->{ImageView image=new ImageView(this);image.setImageBitmap(bitmap);image.setAdjustViewBounds(true);image.setContentDescription("Health document preview");ScrollView scroll=new ScrollView(this);scroll.addView(image);sensitiveDialog=new AlertDialog.Builder(this).setTitle("Document preview · PDF first page").setView(scroll).setPositiveButton("Close",null).create();sensitiveDialog.setOnDismissListener(d->{image.setImageDrawable(null);bitmap.recycle();});sensitiveDialog.show();sensitiveDialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);});}
     private void emergency(){
-        frame("Emergency support");LinearLayout call=ui.card(body);ui.text(call,"Need immediate help?",22,true);ui.note(call,"Use your phone to call emergency services. Saving a demo request does not send an ambulance or notify your contacts.");ui.button(call,"Open dialer · 112",()->startActivity(new Intent(Intent.ACTION_DIAL,Uri.parse("tel:112"))));
+        frame("Emergency support");LinearLayout call=ui.card(body);ui.text(call,"Need immediate help?",22,true);ui.note(call,"Use your phone to call emergency services. Saving a demo request does not send an ambulance or notify your contacts.");Button dial=ui.button(call,"Open dialer · 112",()->startActivity(new Intent(Intent.ACTION_DIAL,Uri.parse("tel:112"))));dial.setBackground(ui.ripple(Ui.RED,12));
         Repository current=repo;
         if(!BuildConfig.DEMO_MODE)ui.button(body,"Retry saved SOS request",()->ui.confirm("Retry the saved request?","The original details and request reference will be resent. Check current status first if you are unsure whether the server accepted it.",()->mutate(current::retrySos,v->go("emergency"))));
         load(()->current.list("emergencies","/api/v1/emergency/history"),rows->{
@@ -272,7 +359,7 @@ public final class MainActivity extends Activity {
         frame("NFC health card");ui.note(body,"A card holds only an opaque identifier. Medical documents and insurance details are not written to the card.");Repository current=repo;
         if(!BuildConfig.DEMO_MODE){ui.note(body,"Live issuance and consent require the backend NFC service, which is not present in the supplied project. No local credential is created in live mode.");return;}
         load(()->current.state(),state->{String token=state.optString("nfcToken");
-            if(!token.isEmpty()){LinearLayout card=ui.card(body);card.setBackground(ui.shape(Ui.TEAL,20));ui.text(card,"HEALTHCONNECT · DEMO CARD",17,true).setTextColor(Color.WHITE);ui.text(card,"•••• "+token.substring(token.length()-6).toUpperCase(Locale.ROOT),27,true).setTextColor(Color.WHITE);ui.text(card,"Active on this device",14,false).setTextColor(Color.WHITE);
+            if(!token.isEmpty()){LinearLayout card=ui.card(body);card.setBackground(ui.healthCard());card.setMinimumHeight(ui.dp(220));card.setGravity(Gravity.CENTER_VERTICAL);card.addView(ui.icon("nfc",Color.WHITE),new LinearLayout.LayoutParams(ui.dp(32),ui.dp(32)));ui.text(card,"HEALTHCONNECT · DEMO CARD",17,true).setTextColor(Color.WHITE);ui.text(card,"•••• "+token.substring(token.length()-6).toUpperCase(Locale.ROOT),27,true).setTextColor(Color.WHITE);ui.text(card,"Active on this device",14,false).setTextColor(Color.WHITE);
                 ui.button(body,"Write to NFC tag",()->ui.confirm("Write demo identifier?","Use a blank, formatted NDEF tag. Existing NDEF contents will be replaced. Do not use a bank, transit or access card.",()->{device.nfc(true,token,result->message("NFC card",result));Toast.makeText(this,"Hold a writable NDEF tag against the phone.",Toast.LENGTH_LONG).show();}));
                 ui.button(body,"Copy demo identifier",()->ui.confirm("Copy identifier?","The identifier permits a demo scan only when consent is active. Clear it from the clipboard after testing.",()->{((ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("HealthConnect demo card",token));main.postDelayed(()->{ClipboardManager clipboard=(ClipboardManager)getSystemService(CLIPBOARD_SERVICE);if(clipboard.hasPrimaryClip()&&clipboard.getPrimaryClip()!=null&&clipboard.getPrimaryClip().getItemCount()>0&&token.contentEquals(clipboard.getPrimaryClip().getItemAt(0).coerceToText(this)))clipboard.setPrimaryClip(ClipData.newPlainText("",""));},60_000);}));
                 ui.button(body,"Revoke card",()->ui.confirm("Revoke this card?","Future scans of this identifier will fail in this Android demo.",()->mutate(()->current.credential(false,true),v->go("nfc"))));
