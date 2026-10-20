@@ -1,5 +1,5 @@
 package com.healthcare.doctor.entity;
-
+import com.healthcare.hospital.entity.Hospital;
 import com.healthcare.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -49,4 +49,8 @@ public class Doctor {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hospital_id")
+    private Hospital hospital;
 }

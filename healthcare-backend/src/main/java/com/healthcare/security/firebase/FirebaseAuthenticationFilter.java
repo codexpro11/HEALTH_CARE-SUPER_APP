@@ -1,3 +1,4 @@
+
 package com.healthcare.security.firebase;
 
 import com.google.firebase.auth.FirebaseToken;
