@@ -31,15 +31,24 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .requestMatchers("/api/v1/auth/register").permitAll() // If exposing local registration mapping
-                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/v1/doctor/**").hasRole("DOCTOR")
-                .requestMatchers("/api/v1/patient/**").hasRole("PATIENT")
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(firebaseAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+.authorizeHttpRequests(auth -> auth
+    .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+    .requestMatchers("/api/v1/auth/register").permitAll()
+
+    .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+    .requestMatchers("/api/v1/doctors/**").hasRole("DOCTOR")
+    .requestMatchers("/api/v1/doctor/**").hasRole("DOCTOR")
+    .requestMatchers("/api/v1/patients/**").hasRole("PATIENT")
+    .requestMatchers("/api/v1/patient/**").hasRole("PATIENT")
+
+    .requestMatchers("/api/v1/hospitals/verified").authenticated()
+    .requestMatchers("/api/v1/hospitals/*").authenticated()
+    .requestMatchers("/api/v1/hospitals").hasAnyRole("HOSPITAL", "ADMIN")
+
+    .anyRequest().authenticated()
+)
+           .addFilterBefore(firebaseAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
