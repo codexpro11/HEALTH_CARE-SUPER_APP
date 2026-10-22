@@ -1,27 +1,24 @@
 spring:
-  application:
-    name: healthcare-backend
-
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/healthcare_db}
-    username: ${DATABASE_USERNAME:postgres}
-    password: ${DATABASE_PASSWORD:postgres}
+    url: jdbc:postgresql://localhost:5432/healthcare_db
     driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: "232005"
 
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: validate
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
 
   flyway:
     enabled: true
-    baseline-on-migrate: true
 
-logging:
-  level:
-    org.springframework.security: DEBUG
-    com.healthcare: DEBUG
+  sql:
+    init:
+      mode: never
+
+firebase:
+  credentials:
+    path: "C:/Users/Dell/firebase-credentials/healthcare-super-app-169b4-firebase-adminsdk-fbsvc-f04716bafd.json"
+

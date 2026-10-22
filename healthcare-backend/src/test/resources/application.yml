@@ -1,19 +1,24 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb
-    driverClassName: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:postgresql://localhost:5432/healthcare_db
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: "232005"
+
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
+    open-in-view: false
+
   flyway:
-    enabled: false
+    enabled: true
+
   sql:
     init:
       mode: never
 
 firebase:
   credentials:
-    json: "{}"
+    path: "C:/Users/Dell/firebase-credentials/healthcare-super-app-169b4-firebase-adminsdk-fbsvc-f04716bafd.json"
+

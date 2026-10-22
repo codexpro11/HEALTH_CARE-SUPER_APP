@@ -1,172 +1,202 @@
-import React, { useState } from 'react';
-import { CreditCard, Power, Ban, RefreshCcw, Wifi, ShieldCheck, Activity } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { AlertTriangle, Ban, CalendarClock, CreditCard, ShieldCheck, Wifi } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
+import { Input } from '../../components/common/Input';
+import type { NfcCredential } from '../../services/nfcApi';
+import { nfcApi } from '../../services/nfcApi';
+
+function formatDate(value: string | null): string {
+  if (!value) return 'Never';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
 
 export const NfcCardPage: React.FC = () => {
-  const [nfcStatus, setNfcStatus] = useState<'ACTIVE' | 'REVOKED' | 'EXPIRED'>('ACTIVE');
-  const [isSimulatingWrite, setIsSimulatingWrite] = useState(false);
-  const cardId = 'HC-8472-••••-9123';
-  const issueDate = '2025-10-15';
-  const lastUsed = '2026-09-08 14:30';
+  const [credentials, setCredentials] = useState<NfcCredential[]>([]);
+  const [credentialId, setCredentialId] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isIssuing, setIsIssuing] = useState(false);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const handleSimulateWrite = () => {
-    setIsSimulatingWrite(true);
-    setTimeout(() => {
-      setIsSimulatingWrite(false);
-      alert('NFC Card provisioned successfully (Simulated)');
-    }, 1500);
-  };
+  useEffect(() => {
+    let isCurrent = true;
+    nfcApi.getMyCredentials()
+      .then(items => {
+        if (isCurrent) setCredentials(items);
+      })
+      .catch(failure => {
+        if (isCurrent) setError(failure instanceof Error ? failure.message : 'Could not load your NFC cards.');
+      })
+      .finally(() => {
+        if (isCurrent) setIsLoading(false);
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
-  const handleRevoke = () => {
-    if (confirm('Are you sure you want to revoke this NFC card? It will immediately stop working.')) {
-      setNfcStatus('REVOKED');
+  const handleIssue = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setNotice(null);
+    setIsIssuing(true);
+    try {
+      const credential = await nfcApi.issueCredential(credentialId.trim());
+      setCredentials(current => [credential, ...current]);
+      setCredentialId('');
+      setNotice('NFC card issued and mapped to your account.');
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Could not issue this NFC card.');
+    } finally {
+      setIsIssuing(false);
     }
   };
 
+  const handleRevoke = async (credential: NfcCredential) => {
+    if (!window.confirm(`Revoke the NFC card ending in ${credential.credentialId.slice(-4)}? It will no longer be active.`)) return;
+    setError(null);
+    setNotice(null);
+    setRevokingId(credential.id);
+    try {
+      const updated = await nfcApi.revokeCredential(credential.id);
+      setCredentials(current => current.map(item => item.id === updated.id ? updated : item));
+      setNotice('NFC card revoked.');
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Could not revoke this NFC card.');
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
+  const activeCount = credentials.filter(item => item.status === 'ACTIVE').length;
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <header>
         <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-          My HealthConnect NFC Card
+          NFC Credentials
         </h1>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Your NFC card contains a secure identifier that helps authorized healthcare providers request access to your HealthConnect records.
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Issue a card by mapping its physical NFC tag UID to your patient account, or revoke a card you no longer use.
         </p>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-6">
-          {/* Virtual Card */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-700 p-6 sm:p-8 text-white shadow-xl min-h-[220px] flex flex-col justify-between">
-            {/* Background elements */}
-            <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl mix-blend-overlay"></div>
-            <div className="absolute bottom-0 left-0 -mb-16 -ml-16 w-48 h-48 bg-teal-900 opacity-30 rounded-full blur-2xl"></div>
-            
-            <div className="relative z-10 flex justify-between items-start">
-              <div className="flex items-center gap-2">
-                <Activity className="w-6 h-6 text-teal-100" />
-                <span className="font-black tracking-tight text-lg">HealthConnect</span>
-              </div>
-              <Wifi className={`w-8 h-8 ${nfcStatus === 'ACTIVE' ? 'text-white' : 'text-slate-300 opacity-50'}`} />
-            </div>
+      {error && (
+        <div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+      {notice && (
+        <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200">
+          {notice}
+        </div>
+      )}
 
-            <div className="relative z-10 space-y-4">
-              <div className="space-y-1">
-                <p className="text-teal-100 text-[10px] uppercase tracking-widest font-bold">Secure Patient Identifier</p>
-                <p className="font-mono text-xl sm:text-2xl tracking-widest font-medium drop-shadow-sm">{cardId}</p>
-              </div>
-              
-              <div className="flex justify-between items-end">
-                <div>
-                  <p className="text-teal-100 text-[10px] uppercase tracking-widest font-bold">Status</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    {nfcStatus === 'ACTIVE' && (
-                      <>
-                        <div className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
-                        <span className="font-bold text-sm tracking-wide text-emerald-50">ACTIVE</span>
-                      </>
-                    )}
-                    {nfcStatus === 'REVOKED' && (
-                      <>
-                        <div className="w-2 h-2 rounded-full bg-rose-400" />
-                        <span className="font-bold text-sm tracking-wide text-rose-100">REVOKED</span>
-                      </>
-                    )}
-                    {nfcStatus === 'EXPIRED' && (
-                      <>
-                        <div className="w-2 h-2 rounded-full bg-amber-400" />
-                        <span className="font-bold text-sm tracking-wide text-amber-100">EXPIRED</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="text-right">
-                  <p className="text-teal-100 text-[10px] uppercase tracking-widest font-bold">Issued</p>
-                  <p className="font-medium text-sm text-teal-50">{issueDate}</p>
-                </div>
-              </div>
-            </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <section className="space-y-4" aria-labelledby="mapped-cards-heading">
+          <div className="flex items-center justify-between">
+            <h2 id="mapped-cards-heading" className="text-base font-bold text-slate-900 dark:text-slate-100">
+              Mapped NFC cards
+            </h2>
+            {!isLoading && (
+              <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
+                {activeCount} active
+              </span>
+            )}
           </div>
 
-          <Card className="p-4 sm:p-5 space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Card Information</h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500 dark:text-slate-400 font-medium">Last Used</span>
-                <span className="text-slate-900 dark:text-slate-100 font-semibold">{lastUsed}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500 dark:text-slate-400 font-medium">Card Identifier</span>
-                <span className="text-slate-900 dark:text-slate-100 font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{cardId}</span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-slate-500 dark:text-slate-400 font-medium">Security</span>
-                <span className="text-emerald-600 dark:text-emerald-500 font-semibold flex items-center gap-1">
-                  <ShieldCheck className="w-4 h-4" /> Securely linked
-                </span>
-              </div>
+          {isLoading ? (
+            <Card className="p-6 text-sm text-slate-500 dark:text-slate-400">Loading your NFC cards…</Card>
+          ) : credentials.length === 0 ? (
+            <Card className="p-6 text-center">
+              <Wifi className="mx-auto h-8 w-8 text-slate-400" />
+              <p className="mt-3 font-semibold text-slate-800 dark:text-slate-200">No NFC cards mapped</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Enter a physical card UID to issue and map your first card.</p>
+            </Card>
+          ) : (
+            credentials.map(credential => (
+              <Card key={credential.id} className="p-4 sm:p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="rounded-xl bg-teal-50 p-2.5 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
+                      <CreditCard className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-mono text-sm font-bold text-slate-900 dark:text-slate-100">{credential.credentialId}</p>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          credential.status === 'ACTIVE'
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                            : credential.status === 'REVOKED'
+                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300'
+                              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                        }`}>
+                          {credential.status}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="inline-flex items-center gap-1"><CalendarClock className="h-3.5 w-3.5" /> Issued {formatDate(credential.issuedAt)}</span>
+                        <span>Last used {formatDate(credential.lastUsedAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {credential.status === 'ACTIVE' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 text-rose-600 dark:text-rose-400"
+                      leftIcon={<Ban className="h-4 w-4" />}
+                      isLoading={revokingId === credential.id}
+                      disabled={revokingId !== null}
+                      onClick={() => void handleRevoke(credential)}
+                    >
+                      Revoke card
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            ))
+          )}
+        </section>
+
+        <aside className="space-y-4">
+          <Card className="p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+              <h2 className="font-bold text-slate-900 dark:text-slate-100">Issue / map card</h2>
             </div>
-          </Card>
-        </div>
-
-        <div className="space-y-4">
-          <Card className="p-4 sm:p-5 space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Card Actions</h3>
-            
-            <div className="space-y-3">
-              {nfcStatus === 'REVOKED' && (
-                <Button 
-                  variant="primary" 
-                  className="w-full justify-center" 
-                  leftIcon={<CreditCard className="w-4 h-4" />}
-                  onClick={() => setNfcStatus('ACTIVE')}
-                >
-                  Activate New Card
-                </Button>
-              )}
-              
-              {nfcStatus === 'ACTIVE' && (
-                <Button 
-                  variant="secondary" 
-                  className="w-full justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:border-rose-200 dark:hover:border-rose-800/50" 
-                  leftIcon={<Ban className="w-4 h-4" />}
-                  onClick={handleRevoke}
-                >
-                  Revoke Card
-                </Button>
-              )}
-
-              <Button 
-                variant="outline" 
-                className="w-full justify-center" 
-                leftIcon={<RefreshCcw className="w-4 h-4" />}
+            <form className="space-y-4" onSubmit={event => void handleIssue(event)}>
+              <Input
+                label="Physical NFC tag UID"
+                value={credentialId}
+                onChange={event => setCredentialId(event.target.value)}
+                placeholder="04:A1:B2:C3"
+                autoComplete="off"
+                required
+                minLength={8}
+                maxLength={29}
+                pattern="([0-9a-fA-F]{2}[:-]?){4,10}"
+                helperText="Enter the UID read from the physical card (4–10 bytes, with or without separators)."
+              />
+              <Button
+                type="submit"
+                className="w-full justify-center"
+                leftIcon={<ShieldCheck className="h-4 w-4" />}
+                isLoading={isIssuing}
+                disabled={isLoading || !credentialId.trim()}
               >
-                Request Replacement
+                Issue &amp; map card
               </Button>
-            </div>
-          </Card>
-
-          <Card className="p-4 sm:p-5 space-y-4 bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-900/30">
-            <div className="flex items-center gap-2">
-              <Power className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-300">Developer / Testing</h3>
-            </div>
-            <p className="text-xs text-indigo-700/80 dark:text-indigo-400/80 leading-relaxed">
-              Use this tool to simulate writing the secure patient identifier to a physical NFC card using WebNFC (where supported).
+            </form>
+            <p className="mt-4 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              This maps the tag UID to your account; it does not write data to the physical card. NFC tag UIDs can be copied, so they must not be treated as a secret or used alone to authorize access.
             </p>
-            <Button 
-              variant="primary"
-              className="w-full justify-center bg-indigo-600 hover:bg-indigo-700 text-white border-transparent"
-              leftIcon={<Wifi className="w-4 h-4" />}
-              onClick={handleSimulateWrite}
-              disabled={isSimulatingWrite}
-            >
-              {isSimulatingWrite ? 'Writing to NFC...' : 'Simulate Write to NFC Card'}
-            </Button>
           </Card>
-        </div>
+        </aside>
       </div>
     </div>
   );
