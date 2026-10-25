@@ -1,0 +1,17 @@
+name: iOS build
+on:
+  push:
+    branches: [main-atharv]
+    paths: ['ios/**', '.github/workflows/ios.yml']
+  pull_request:
+    paths: ['ios/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  simulator:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build iPhone simulator app
+        run: xcodebuild -project ios/HealthConnect.xcodeproj -scheme HealthConnect -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build
