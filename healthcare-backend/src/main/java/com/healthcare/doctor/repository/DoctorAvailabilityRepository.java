@@ -9,4 +9,5 @@ public interface DoctorAvailabilityRepository
         extends JpaRepository<DoctorAvailability, Long> {
 
     List<DoctorAvailability> findByDoctorIdAndActiveTrue(Long doctorId);
+    boolean existsByIdAndDoctor_User_Id(Long id, Long userId);
 }

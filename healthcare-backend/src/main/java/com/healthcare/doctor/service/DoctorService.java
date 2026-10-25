@@ -68,4 +68,10 @@ public class DoctorService {
         }
         return doctorRepository.findByHospitalId(hospitalId);
     }
+    @Transactional(readOnly = true)
+    public Doctor getByUserId(Long userId) {
+        return doctorRepository.findByUserId(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Doctor profile not found for user: " + userId));
+    }
 }
