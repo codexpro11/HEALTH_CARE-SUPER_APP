@@ -42,7 +42,7 @@ final class Ui {
     Button button(LinearLayout p,String title,Runnable action){return action(p,title,action,false);}
     Button secondary(LinearLayout p,String title,Runnable action){return action(p,title,action,true);}
     private Button action(LinearLayout parent,String title,Runnable action,boolean secondary){
-        Button b=new Button(activity);b.setText(title);b.setAllCaps(false);b.setTextSize(14);b.setTypeface(Typeface.create("sans-serif-medium",0));
+        Button b=new Button(activity);b.setText(title);b.setAllCaps(false);b.setTextSize(14);b.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
         b.setTextColor(secondary?accent:Color.WHITE);b.setBackgroundTintList(null);
         b.setBackground(new RippleDrawable(ColorStateList.valueOf(0x26000000),secondary?outlined(surface,12):shape(TEAL,12),shape(Color.WHITE,12)));
         b.setMinHeight(dp(48));b.setMinimumHeight(dp(48));b.setPadding(dp(16),dp(12),dp(16),dp(12));b.setStateListAnimator(null);

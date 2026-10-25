@@ -44,7 +44,19 @@ public class BuildDemo {
         Path packed=output.resolve("packed.apk");
         try(ZipOutputStream zip=new ZipOutputStream(Files.newOutputStream(packed));ZipFile resources=new ZipFile(output.resolve("resources.apk").toFile())){
             Enumeration<? extends ZipEntry> entries=resources.entries();
-            while(entries.hasMoreElements()){ZipEntry source=entries.nextElement();if(source.isDirectory())continue;zip.putNextEntry(new ZipEntry(source.getName()));try(InputStream in=resources.getInputStream(source)){in.transferTo(zip);}zip.closeEntry();}
+            while(entries.hasMoreElements()){
+                ZipEntry source=entries.nextElement();if(source.isDirectory())continue;
+                ZipEntry entry=new ZipEntry(source.getName());
+                if(source.getMethod()==ZipEntry.STORED||source.getName().endsWith(".arsc")){
+                    entry.setMethod(ZipEntry.STORED);
+                    entry.setSize(source.getSize());
+                    entry.setCrc(source.getCrc());
+                    entry.setCompressedSize(source.getSize());
+                }
+                zip.putNextEntry(entry);
+                try(InputStream in=resources.getInputStream(source)){in.transferTo(zip);}
+                zip.closeEntry();
+            }
             try(var paths=Files.list(dex)){for(Path path:paths.filter(p->p.toString().endsWith(".dex")).toList()){zip.putNextEntry(new ZipEntry(path.getFileName().toString()));Files.copy(path,zip);zip.closeEntry();}}
         }
         Path aligned=output.resolve("aligned.apk"),key=output.resolve("demo-signing.jks"),apk=output.resolve("HealthConnect-Phase7-Demo.apk");

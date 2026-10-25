@@ -45,25 +45,41 @@ public final class MainActivity extends Activity {
         super.onCreate(saved); getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);ui=new Ui(this);device=new DeviceWorkflows(this);
         if(Build.VERSION.SDK_INT>=33)getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,this::back);
         try{store=new SecureStore(this);}catch(Exception error){ui.message("Secure storage unavailable","HealthConnect cannot open secure storage. Restart the app. Existing files were not replaced.");return;}
+        String deepLink=parseDeepLink(getIntent());
+        String initialRoute=deepLink!=null?deepLink:(saved==null?"home":saved.getString("route","home"));
         Object retained=getLastNonConfigurationInstance();
-        if(retained instanceof Session){session=(Session)retained;repo=new Repository(this,session,store);go(saved==null?"home":saved.getString("route","home"));return;}
+        if(retained instanceof Session){session=(Session)retained;repo=new Repository(this,session,store);go(initialRoute);return;}
         if(BuildConfig.DEMO_MODE){login();return;}
         frame("Opening HealthConnect");ui.note(body,"Verifying your saved session…");
         long expected=generation;
-        load(()->Session.restore(store,expected),restored->{if(restored==null)login();else accept(restored);});
+        load(()->Session.restore(store,expected),restored->{if(restored==null)login();else accept(restored,deepLink);});
     }
-    @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);if(session!=null&&Rules.patient(session.role))go("notifications");else login();}
+    @Override protected void onNewIntent(Intent intent){
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String deepLink=parseDeepLink(intent);
+        String target=deepLink!=null?deepLink:"notifications";
+        if(session!=null&&Rules.patient(session.role))go(target);else login();
+    }
     @Override protected void onPause(){device.stop();if(sensitiveDialog!=null)sensitiveDialog.dismiss();location=null;super.onPause();}
     @Override protected void onDestroy(){generation++;device.stop();if(!isChangingConfigurations()&&session!=null)session.closeMemory();worker.shutdownNow();super.onDestroy();}
     @Override public Object onRetainNonConfigurationInstance(){return session;}
     @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putString("route",route);}
     private void back(){if(session!=null&&!route.equals("home"))go("home");else finish();}
+    @SuppressWarnings("deprecation") @android.annotation.SuppressLint("GestureBackNavigation")
     @Override public void onBackPressed(){back();}
     @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] grants){
         super.onRequestPermissionsResult(request,permissions,grants);
         if(request==DeviceWorkflows.NOTIFICATION_PERMISSION){boolean allowed=grants.length>0&&grants[0]==PackageManager.PERMISSION_GRANTED;setAlertsEnabled(allowed);message(allowed?"Device alerts enabled":"Device alerts unavailable",allowed?"You can test an alert from the Inbox. Background push is not connected.":"Your inbox continues to work. You can change permission in Android settings.");}
     }
     void message(String title,String text){ui.message(title,text);}
+    private void shareLink(String title,String link){
+        Intent share=new Intent(Intent.ACTION_SEND);
+        share.setType("text/plain");
+        share.putExtra(Intent.EXTRA_SUBJECT,title);
+        share.putExtra(Intent.EXTRA_TEXT,link);
+        startActivity(Intent.createChooser(share,"Share link via"));
+    }
     private void frame(String title){
         screen++;device.stop();if(sensitiveDialog!=null)sensitiveDialog.dismiss();
         root=ui.column();root.setBackgroundColor(ui.background);
@@ -114,7 +130,9 @@ public final class MainActivity extends Activity {
             {"Notifications","notifications","bell"},{"Profile","profile","user"},{"More","more","menu"}
         }:new String[][]{{"Dashboard","home","activity"},{"NFC Scanner","scanner","nfc"},{"More","more","menu"}};
         for(String[] item:items)ui.navigation(links,item[0],item[2],route.equals(item[1]),()->{drawer.dismiss();go(item[1]);});
-        ui.divider(panel);ui.note(panel,session.email);ui.secondary(panel,"Sign out",()->{drawer.dismiss();ui.confirm("Sign out?","Private screens and active device workflows will close.",this::logout);});
+        ui.divider(panel);ui.note(panel,session.email);
+        ui.secondary(panel,"Share page link",()->{drawer.dismiss();shareLink("HealthConnect","Open in HealthConnect: https://healthconnect.app/"+route);});
+        ui.secondary(panel,"Sign out",()->{drawer.dismiss();ui.confirm("Sign out?","Private screens and active device workflows will close.",this::logout);});
         drawer.setContentView(panel);Window window=drawer.getWindow();if(window!=null){window.setBackgroundDrawableResource(android.R.color.transparent);window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);window.setGravity(Gravity.START);window.setDimAmount(.4f);window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);}
         drawer.show();if(window!=null)window.setLayout(Math.min(ui.dp(320),(int)(getResources().getDisplayMetrics().widthPixels*.9f)),-1);
     }
@@ -157,9 +175,28 @@ public final class MainActivity extends Activity {
         if(!mail.contains("@")||secret.length()<6){message("Check your details","Enter a valid email and a password of at least 6 characters.");return;}
         long expected=generation;boolean keep=remember.isChecked();mutate(()->Session.login(mail,secret,register,store,keep,expected),signed->{password.setText("");accept(signed);});
     }
-    private void accept(Session signed){
-        try{store.delete("session");signed.persist();session=signed;repo=new Repository(this,signed,store);go("home");}
+    private void accept(Session signed){accept(signed,null);}
+    private void accept(Session signed,String targetRoute){
+        try{store.delete("session");signed.persist();session=signed;repo=new Repository(this,signed,store);go(targetRoute!=null?targetRoute:"home");}
         catch(Exception error){signed.clear();session=null;repo=null;login();message("Sign in not saved","Secure session storage failed. Please try again.");}
+    }
+    private String parseDeepLink(Intent intent){
+        if(intent==null||intent.getData()==null)return null;
+        Uri uri=intent.getData();
+        String path=uri.getPath();
+        if(path!=null&&path.length()>1){
+            String candidate=path.substring(1).split("/")[0];
+            if(isKnownRoute(candidate))return candidate;
+        }
+        String host=uri.getHost();
+        if(isKnownRoute(host))return host;
+        return null;
+    }
+    private boolean isKnownRoute(String r){
+        if(r==null||r.isEmpty())return false;
+        return Json.set("home","more","doctors","appointments","bookings","orders","records","upload",
+            "diagnostics","pharmacy","emergency","notifications","nfc","scanner","insurance",
+            "profile","hospitals","bloodBanks").contains(r);
     }
     private void demo(String email,String role){generation++;session=Session.demo(email,role,store,generation);repo=new Repository(this,session,store);go("home");}
     private void logout(){
