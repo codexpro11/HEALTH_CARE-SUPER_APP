@@ -6,18 +6,34 @@
 	objects = {
 		A00000000000000000000001 /* HealthConnectApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001 /* HealthConnectApp.swift */; };
 		A00000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000002 /* ContentView.swift */; };
+		A00000000000000000000004 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000004 /* Models.swift */; };
+		A00000000000000000000005 /* MockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000005 /* MockData.swift */; };
+		A00000000000000000000006 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* APIService.swift */; };
+		A00000000000000000000007 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* AppState.swift */; };
+		A00000000000000000000008 /* CareViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* CareViews.swift */; };
+		A00000000000000000000009 /* RecordsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000009 /* RecordsViews.swift */; };
+		A00000000000000000000010 /* EmergencyViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000010 /* EmergencyViews.swift */; };
+		A00000000000000000000011 /* ProfileViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* ProfileViews.swift */; };
 		B00000000000000000000001 /* HealthConnectApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthConnectApp.swift; sourceTree = "<group>"; };
 		B00000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B00000000000000000000004 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		B00000000000000000000005 /* MockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
+		B00000000000000000000006 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
+		B00000000000000000000007 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		B00000000000000000000008 /* CareViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareViews.swift; sourceTree = "<group>"; };
+		B00000000000000000000009 /* RecordsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordsViews.swift; sourceTree = "<group>"; };
+		B00000000000000000000010 /* EmergencyViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyViews.swift; sourceTree = "<group>"; };
+		B00000000000000000000011 /* ProfileViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileViews.swift; sourceTree = "<group>"; };
 		B00000000000000000000003 /* HealthConnect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HealthConnect.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C00000000000000000000001 = {
 			isa = PBXGroup;
 			children = (C00000000000000000000002 /* Sources */, B00000000000000000000003 /* HealthConnect.app */,);
 			sourceTree = "<group>";
 		};
-		C00000000000000000000002 /* Sources */ = {isa = PBXGroup; path = HealthConnect; sourceTree = "<group>"; children = (B00000000000000000000001, B00000000000000000000002,); };
+		C00000000000000000000002 /* Sources */ = {isa = PBXGroup; path = HealthConnect; sourceTree = "<group>"; children = (B00000000000000000000001, B00000000000000000000002, B00000000000000000000004, B00000000000000000000005, B00000000000000000000006, B00000000000000000000007, B00000000000000000000008, B00000000000000000000009, B00000000000000000000010, B00000000000000000000011,); };
 		D00000000000000000000001 /* HealthConnect */ = {isa = PBXNativeTarget; buildConfigurationList = D00000000000000000000006; buildPhases = (E00000000000000000000001, E00000000000000000000002, E00000000000000000000003,); buildRules = (); dependencies = (); name = HealthConnect; productName = HealthConnect; productReference = B00000000000000000000003; productType = "com.apple.product-type.application"; };
 		D00000000000000000000003 /* Project */ = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = 1; LastUpgradeCheck = 1600;}; buildConfigurationList = D00000000000000000000005; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base,); mainGroup = C00000000000000000000001; productRefGroup = C00000000000000000000001; projectDirPath = ""; projectRoot = ""; targets = (D00000000000000000000001,); };
-		E00000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000001, A00000000000000000000002,); runOnlyForDeploymentPostprocessing = 0; };
+		E00000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000001, A00000000000000000000002, A00000000000000000000004, A00000000000000000000005, A00000000000000000000006, A00000000000000000000007, A00000000000000000000008, A00000000000000000000009, A00000000000000000000010, A00000000000000000000011,); runOnlyForDeploymentPostprocessing = 0; };
 		E00000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 		E00000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 		D00000000000000000000005 = {isa = XCConfigurationList; buildConfigurations = (F00000000000000000000001, F00000000000000000000002,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };

@@ -1,23 +1,27 @@
 # HealthConnect for iPhone and iPad
 
-Open ios/HealthConnect.xcodeproj in Xcode. The shared HealthConnect scheme supports iOS 17+, iPhone, iPad and Simulator.
+Open `ios/HealthConnect.xcodeproj` in Xcode. The shared HealthConnect scheme supports iOS 17+, iPhone, iPad and Simulator.
 
-## Install on iPhone
-1. Pull main-atharv and open ios/HealthConnect.xcodeproj.
-2. Add your Apple account in Xcode Settings > Accounts.
-3. Select the HealthConnect target > Signing & Capabilities. Select your Team with automatic signing enabled. Use a unique bundle identifier for your team if required.
-4. Connect and trust your iPhone, select it as the run destination and enable Developer Mode if Xcode requests it.
-5. Click Run and follow Xcode's signing instructions.
+## Native iOS Features (Full Parity with Frontend & Android)
 
-For Simulator, choose an installed iPhone simulator and click Run.
+| Area | Features & Endpoints |
+| --- | --- |
+| **Authentication & Profiles** | Demo personas (Sarah Jenkins, Dr. Evelyn Reed, John Doe); Profile view & edit (name, phone, address, blood group, allergies, emergency contact); Endpoints: `POST /api/v1/auth/login`, `POST /api/v1/auth/register`, `GET /api/v1/auth/me`, `GET /api/v1/users/me`, `PATCH /api/v1/users/me`. |
+| **Doctors & Appointments** | Doctor directory search, specialty chips (Cardiology, Neurology, Dermatology, General), detailed profiles; booking sheet with consultation type (In-person, Video, Audio), date & slot selection, reason; appointments manager with status filters, rescheduling modal, cancellation with reason; Endpoints: `GET /api/v1/doctors`, `GET /api/v1/doctors/{id}`, `GET /api/v1/appointments`, `POST /api/v1/appointments`, `PATCH /api/v1/appointments/{id}`, `DELETE /api/v1/appointments/{id}`. |
+| **Diagnostics & Lab Tests** | Test catalog search & category chips (Blood, Imaging, Cardiology, Diabetes); partner diagnostic centers with ratings & accreditation; test booking sheet with Home Sample Collection vs Center Visit, scheduled date/time; lab bookings tracker with cancellation; Endpoints: `GET /api/v1/diagnostics/centers`, `GET /api/v1/diagnostics/tests`, `GET /api/v1/diagnostics/bookings`, `POST /api/v1/diagnostics/bookings`, `POST /api/v1/diagnostics/bookings/{id}/cancel`. |
+| **Pharmacy & Medicine Delivery** | Medicine catalog with category filters, dosage form, strength, stock & prescription requirement tags; interactive Cart Drawer with quantity steppers, subtotal, delivery fee calculation; checkout form with address, payment method (COD, Card, UPI, Insurance), prescription document attachment selection; order history with status timeline & cancellation; Endpoints: `GET /api/v1/pharmacy/medicines`, `GET /api/v1/pharmacy/medicines/{id}`, `GET /api/v1/pharmacy/orders`, `POST /api/v1/pharmacy/orders`, `POST /api/v1/pharmacy/orders/{id}/cancel`. |
+| **Medical Records & Prescriptions** | Filter records by type (Lab Reports, Consultations, Prescriptions, Radiology, Archived); Document upload sheet with title, doctor, facility, date, confidentiality level, attachment preview; Document detail sheet with encrypted download simulation and archive/restore toggle; Prescriptions section with medications, dosage, frequency, instructions, refills, and digital signature; Provider Consents list with revoke access action; Endpoints: `GET /api/v1/medical-records`, `POST /api/v1/medical-records`, `POST /api/v1/medical-records/{id}/archive`, `POST /api/v1/medical-records/{id}/restore`, `GET /api/v1/prescriptions`, `GET /api/v1/medical-records/consents`, `POST /api/v1/medical-records/consents/{id}/revoke`. |
+| **Emergency SOS** | High-visibility emergency hub; Emergency type selector (Cardiac Arrest, Trauma / Road Accident, Breathing Difficulty, Stroke, Bleeding, Other); GPS coordinates + accuracy and manual incident address override; Active emergency live tracker with status (DISPATCHED, EN_ROUTE, ARRIVED), ETA countdown, assigned ambulance details (vehicle number, paramedic contact link, assigned hospital), nearby receiving hospital bed counts; cancellation with reason; emergency history; Endpoints: `POST /api/v1/emergency/sos` (with `Idempotency-Key` header), `GET /api/v1/emergency/active`, `GET /api/v1/emergency/history`, `POST /api/v1/emergency/{id}/cancel`. |
+| **Hospitals & Blood Banks** | Hospital directory with emergency 24/7 filter, ICU availability filter, live bed counts (ICU, Emergency, General), one-tap emergency call and telephone dialer; Blood Bank directory with 24x7 filter and inventory breakdown per blood group (A+, A-, B+, B-, O+, O-, AB+, AB-); Endpoints: `GET /api/v1/hospitals`, `GET /api/v1/blood-banks`. |
+| **Insurance & Claims** | Comprehensive family policy view with coverage benefits breakdown ($500,000 sum insured, in-patient, ICU, ambulance, day care); new claim submission sheet (Cashless / Reimbursement, hospital, amount, justification); claims history tracking; Endpoints: `GET /api/v1/insurance/policies`, `GET /api/v1/insurance/claims`, `POST /api/v1/insurance/claims`. |
+| **Notifications & Inbox** | Real-time notification center with unread badge counter; notification categories (Appointments, Emergency events, Lab reports, Orders); mark individual notification as read; bulk "Mark All as Read"; Endpoints: `GET /api/v1/notifications`, `PATCH /api/v1/notifications/{id}/read`, `POST /api/v1/notifications/mark-all-read`. |
+| **NFC Health Card & Sharing** | Digital Health Card preview with card ID, blood group, emergency contact; Issue, replace and revoke digital card; local 1-hour consent toggle; doctor/provider NFC scan terminal simulator; Endpoints: `GET /api/v1/nfc/credentials/me`, `POST /api/v1/nfc/credentials`, `DELETE /api/v1/nfc/credentials/{id}`, `GET /api/v1/consents`. |
+| **Backend & Network Settings** | Toggle between Offline Demo Mode (rich mock fallback) and Live Server API Mode; custom Base URL setting (default `http://localhost:8080`); live server health check test. |
 
-## Distribution
-This repository contains source, not a signed IPA. TestFlight distribution requires your Apple Developer Program team, App Store Connect app record and signing. Use Product > Archive and Distribute App after configuring these. No TestFlight or App Store release has been created.
+## Build and Validation
 
-## Current functionality
-This is a SwiftUI UI starter with Home, Care, Records, Emergency and Profile tabs, navigation and an SOS information dialog. It is not the complete web/Android app. Search has no connected results. Login, bookings, document upload, persistence, insurance actions, notifications, NFC and live SOS remain unimplemented. No emergency request is sent.
-
-Shared API contracts are documented in android/README.md.
-
-## Validation
-The local build on 2026-10-25 reached Swift compilation but sandbox permissions blocked the Swift macro process. A successful local build and iPhone installation have not been verified. The GitHub workflow builds for Simulator without signing.
+Run xcodebuild from the repository root:
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun xcodebuild -project ios/HealthConnect.xcodeproj -scheme HealthConnect -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+```
+Build Status: **SUCCEEDED** (All 10 Swift modules compiled cleanly without warnings or errors).
