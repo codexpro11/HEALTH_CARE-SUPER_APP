@@ -20,6 +20,15 @@ public class DoctorAvailabilityService {
     private final DoctorAvailabilityRepository availabilityRepository;
     private final DoctorRepository doctorRepository;
 
+    /**
+     * Creates a recurring weekly availability schedule for a doctor.
+     *
+     * @param doctorId  ID of the doctor
+     * @param dayOfWeek Day of week (1 = Monday, 7 = Sunday)
+     * @param startTime Availability start time
+     * @param endTime   Availability end time
+     * @return Saved availability
+     */
     @Transactional
     public DoctorAvailability create(
             Long doctorId,
@@ -27,20 +36,45 @@ public class DoctorAvailabilityService {
             LocalTime startTime,
             LocalTime endTime) {
 
+        // Validate weekday
         if (dayOfWeek == null || dayOfWeek < 1 || dayOfWeek > 7) {
             throw new BadRequestException(
-                    "dayOfWeek must be between 1 (Monday) and 7 (Sunday)");
+                    "dayOfWeek must be between 1 (Monday) and 7 (Sunday)"
+            );
         }
 
-        if (startTime == null || endTime == null || !startTime.isBefore(endTime)) {
+        // Validate time range
+        if (startTime == null || endTime == null
+                || !startTime.isBefore(endTime)) {
             throw new BadRequestException(
-                    "startTime must be earlier than endTime");
+                    "startTime must be earlier than endTime"
+            );
         }
 
+        // Verify that the doctor exists
         Doctor doctor = doctorRepository.findById(doctorId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Doctor not found: " + doctorId));
+                        new ResourceNotFoundException(
+                                "Doctor not found: " + doctorId
+                        )
+                );
 
+        // Prevent overlapping availability on the same day
+        boolean hasOverlap = availabilityRepository
+                .existsByDoctorIdAndDayOfWeekAndActiveTrueAndStartTimeLessThanAndEndTimeGreaterThan(
+                        doctorId,
+                        dayOfWeek,
+                        endTime,
+                        startTime
+                );
+
+        if (hasOverlap) {
+            throw new BadRequestException(
+                    "Doctor already has overlapping availability for this day"
+            );
+        }
+
+        // Build and save availability
         DoctorAvailability availability = DoctorAvailability.builder()
                 .doctor(doctor)
                 .dayOfWeek(dayOfWeek)
@@ -52,23 +86,42 @@ public class DoctorAvailabilityService {
         return availabilityRepository.save(availability);
     }
 
+    /**
+     * Retrieves all active availability schedules for a doctor.
+     *
+     * @param doctorId ID of the doctor
+     * @return List of active availability schedules
+     */
     @Transactional(readOnly = true)
     public List<DoctorAvailability> getForDoctor(Long doctorId) {
+
         if (!doctorRepository.existsById(doctorId)) {
-            throw new ResourceNotFoundException("Doctor not found: " + doctorId);
+            throw new ResourceNotFoundException(
+                    "Doctor not found: " + doctorId
+            );
         }
 
         return availabilityRepository.findByDoctorIdAndActiveTrue(doctorId);
     }
 
+    /**
+     * Deactivates an availability schedule.
+     *
+     * @param availabilityId ID of the availability schedule
+     */
     @Transactional
     public void deactivate(Long availabilityId) {
-        DoctorAvailability availability = availabilityRepository.findById(availabilityId)
+
+        DoctorAvailability availability = availabilityRepository
+                .findById(availabilityId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
-                                "Availability not found: " + availabilityId));
+                                "Availability not found: " + availabilityId
+                        )
+                );
 
         availability.setActive(false);
+
         availabilityRepository.save(availability);
     }
 }

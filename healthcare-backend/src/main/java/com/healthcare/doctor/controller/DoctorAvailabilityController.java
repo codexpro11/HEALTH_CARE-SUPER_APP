@@ -11,13 +11,7 @@ import com.healthcare.security.principal.AuthenticatedUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -30,38 +24,77 @@ public class DoctorAvailabilityController {
     private final DoctorRepository doctorRepository;
     private final DoctorAvailabilityRepository availabilityRepository;
 
+    /**
+     * Creates availability for the authenticated doctor.
+     */
     @PostMapping
     public DoctorAvailabilityResponse create(
             @AuthenticationPrincipal AuthenticatedUser principal,
             @Valid @RequestBody DoctorAvailabilityRequest request) {
+
         Doctor doctor = getDoctorForUser(principal.getUser().getId());
-        return DoctorAvailabilityResponse.from(availabilityService.create(
-                doctor.getId(), request.dayOfWeek(), request.startTime(), request.endTime()));
+
+        return DoctorAvailabilityResponse.from(
+                availabilityService.create(
+                        doctor.getId(),
+                        request.dayOfWeek(),
+                        request.startTime(),
+                        request.endTime()
+                )
+        );
     }
 
+    /**
+     * Retrieves availability belonging to the authenticated doctor.
+     */
     @GetMapping
     public List<DoctorAvailabilityResponse> getOwnAvailability(
             @AuthenticationPrincipal AuthenticatedUser principal) {
+
         Doctor doctor = getDoctorForUser(principal.getUser().getId());
-        return availabilityService.getForDoctor(doctor.getId()).stream()
+
+        return availabilityService.getForDoctor(doctor.getId())
+                .stream()
                 .map(DoctorAvailabilityResponse::from)
                 .toList();
     }
 
+    /**
+     * Deactivates an availability schedule only if it belongs
+     * to the authenticated doctor.
+     */
     @PatchMapping("/{availabilityId}/deactivate")
     public void deactivate(
             @AuthenticationPrincipal AuthenticatedUser principal,
             @PathVariable Long availabilityId) {
+
         Long userId = principal.getUser().getId();
-        if (!availabilityRepository.existsByIdAndDoctor_User_Id(availabilityId, userId)) {
-            throw new ResourceNotFoundException("Availability not found: " + availabilityId);
+
+        boolean belongsToUser =
+                availabilityRepository.existsByIdAndDoctor_User_Id(
+                        availabilityId,
+                        userId
+                );
+
+        if (!belongsToUser) {
+            throw new ResourceNotFoundException(
+                    "Availability not found: " + availabilityId
+            );
         }
+
         availabilityService.deactivate(availabilityId);
     }
 
+    /**
+     * Finds the doctor profile associated with the authenticated user.
+     */
     private Doctor getDoctorForUser(Long userId) {
+
         return doctorRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Doctor profile not found for user: " + userId));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Doctor profile not found for user: " + userId
+                        )
+                );
     }
 }

@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +49,33 @@ class DoctorAvailabilityServiceTest {
         assertSame(saved, result);
         verify(availabilityRepository).save(any(DoctorAvailability.class));
     }
+    @Test
+void createShouldRejectOverlappingAvailability() {
+    Doctor doctor = mock(Doctor.class);
+
+    when(doctorRepository.findById(1L))
+            .thenReturn(Optional.of(doctor));
+
+    lenient().when(
+            availabilityRepository
+                    .existsByDoctorIdAndDayOfWeekAndActiveTrueAndStartTimeLessThanAndEndTimeGreaterThan(
+                            1L,
+                            (short) 1,
+                            LocalTime.of(14, 0),
+                            LocalTime.of(11, 0)))
+            .thenReturn(true);
+
+    assertThrows(
+            BadRequestException.class,
+            () -> availabilityService.create(
+                    1L,
+                    (short) 1,
+                    LocalTime.of(11, 0),
+                    LocalTime.of(14, 0))
+    );
+
+    verify(availabilityRepository, never()).save(any());
+}
 
     @Test
     void createShouldRejectNullWeekday() {
@@ -167,4 +196,35 @@ class DoctorAvailabilityServiceTest {
 
         verify(availabilityRepository, never()).save(any());
     }
+    @Test
+void createShouldAllowAdjacentAvailability() {
+    Doctor doctor = mock(Doctor.class);
+    DoctorAvailability saved = mock(DoctorAvailability.class);
+
+    when(doctorRepository.findById(1L))
+            .thenReturn(Optional.of(doctor));
+
+    when(availabilityRepository
+            .existsByDoctorIdAndDayOfWeekAndActiveTrueAndStartTimeLessThanAndEndTimeGreaterThan(
+                    1L,
+                    (short) 1,
+                    LocalTime.of(15, 0),
+                    LocalTime.of(12, 0)
+            ))
+            .thenReturn(false);
+
+    when(availabilityRepository.save(any(DoctorAvailability.class)))
+            .thenReturn(saved);
+
+    DoctorAvailability result = availabilityService.create(
+            1L,
+            (short) 1,
+            LocalTime.of(12, 0),
+            LocalTime.of(15, 0)
+    );
+
+    assertSame(saved, result);
+
+    verify(availabilityRepository).save(any(DoctorAvailability.class));
+}
 }

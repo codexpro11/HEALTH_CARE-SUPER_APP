@@ -9,13 +9,14 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
-@Entity
-@Table(name = "doctors")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
+@Table(name = "doctors")
+
 @EntityListeners(AuditingEntityListener.class)
 public class Doctor {
 
