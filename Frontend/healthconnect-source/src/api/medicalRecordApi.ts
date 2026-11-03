@@ -61,8 +61,10 @@ export const medicalRecordApi = {
     return executeWithFallback(
       () => apiClient.get('/api/v1/prescriptions', { params: { status } }),
       () => {
-        if (!status || status === 'ALL') return mockPrescriptions;
-        return mockPrescriptions.filter((p) => p.status === status);
+        const today = new Date(); const day = [today.getFullYear(), String(today.getMonth()+1).padStart(2,'0'), String(today.getDate()).padStart(2,'0')].join('-');
+        const list = mockPrescriptions.map(p => ({...p, status: p.status === 'ACTIVE' && p.validUntil < day ? 'EXPIRED' as const : p.status}));
+        if (!status || status === 'ALL') return list;
+        return list.filter(p => p.status === status);
       },
       'Prescriptions retrieved'
     );
@@ -72,7 +74,8 @@ export const medicalRecordApi = {
     return executeWithFallback(
       () => apiClient.get(`/api/v1/prescriptions/${id}`),
       () => {
-        const found = mockPrescriptions.find((p) => p.id === id) || mockPrescriptions[0];
+        const found = mockPrescriptions.find((p) => p.id === id);
+        if (!found) throw new Error('Prescription not found.');
         return found;
       },
       'Prescription details retrieved'

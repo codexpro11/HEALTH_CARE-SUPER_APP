@@ -29,7 +29,7 @@ export function validMoney(value: number): boolean {
   return Number.isFinite(value) && value > 0 && value <= 999999999 && Math.round(value * 100) / 100 === value;
 }
 export function maskIdentifier(value: string): string {
-  return '-' + value.slice(-4);
+  return '••••-' + value.slice(-4);
 }
 export function formatMoney(value: number, currency: Currency): string {
   return new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);

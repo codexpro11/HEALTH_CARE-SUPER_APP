@@ -170,9 +170,9 @@ export const RegisterPage: React.FC = () => {
           />
           <span>
             I agree to the{' '}
-            <span className="text-teal-600 font-semibold underline">Terms of Clinical Service</span>{' '}
+            <Link to="/demo-notice" className="text-teal-600 font-semibold underline">demo use notice</Link>{' '}
             and acknowledge the{' '}
-            <span className="text-teal-600 font-semibold underline">Privacy notice</span>.
+            <Link to="/demo-notice" className="text-teal-600 font-semibold underline">demo privacy notice</Link>.
           </span>
         </label>
 

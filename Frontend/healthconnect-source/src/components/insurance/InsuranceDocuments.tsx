@@ -61,7 +61,7 @@ export function InsuranceDocuments({ kind, parentId, documents, editable = true 
     {documents.length === 0 ? <p className="text-sm text-slate-500">No documents attached.</p> :
       <ul className="space-y-3">{documents.map(document => <li key={document.id} className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
         <p className="text-sm font-semibold break-all">{document.name}</p>
-        <p className="text-xs text-slate-500">{(document.size / 1024).toFixed(1)} KB � {document.uploadedAt.slice(0, 10)}</p>
+        <p className="text-xs text-slate-500">{(document.size / 1024).toFixed(1)} KB · {document.uploadedAt.slice(0, 10)}</p>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => view(document.id)} disabled={busy} aria-label={'Preview ' + document.name}>Preview</Button>
           <Button variant="outline" size="sm" onClick={() => download(document.id)} disabled={busy} aria-label={'Download ' + document.name}>Download</Button>

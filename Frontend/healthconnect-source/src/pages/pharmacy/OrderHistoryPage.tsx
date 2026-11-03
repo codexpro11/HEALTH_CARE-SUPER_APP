@@ -238,7 +238,7 @@ export const OrderHistoryPage: React.FC = () => {
               />
               {needsPrescription && <div className="space-y-2">
                 <label className="block text-sm">Prescription document<select className="block w-full rounded-xl border p-2.5 mt-1 bg-white dark:bg-slate-900" value={prescriptionId} onChange={event => setPrescriptionId(event.target.value)} disabled={createOrderMutation.isPending} required>
-                  <option value="">Select an uploaded prescription</option>{documents.map(record => <option key={record.id} value={record.id}>{record.title} � {record.date}</option>)}
+                  <option value="">Select an uploaded prescription</option>{documents.map(record => <option key={record.id} value={record.id}>{record.title} · {record.date}</option>)}
                 </select></label>
                 {recordsQuery.isLoading && <p className="text-xs">Loading your documents.</p>}
                 {recordsQuery.isError && <ErrorState message={errorMessage(recordsQuery.error)} onRetry={() => recordsQuery.refetch()} />}

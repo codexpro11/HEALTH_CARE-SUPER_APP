@@ -40,7 +40,7 @@ export function PhaseProgressPage() {
     </Card>
     <Card className="p-5 space-y-4"><h2 className="text-lg font-bold">Original ten-phase roadmap</h2>
       {phases.map(([number, name, status]) => <div key={number} className={'rounded-xl p-4 border ' + (number === '5' ? 'border-teal-500 bg-teal-50 dark:bg-teal-950' : 'border-slate-200 dark:border-slate-800')}>
-        <h3 className="font-bold">Phase {number} � {name}</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{status}</p></div>)}
+        <h3 className="font-bold">Phase {number} · {name}</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{status}</p></div>)}
     </Card>
     <Card className="p-5 space-y-3"><h2 className="font-bold">Try the complete demo flow</h2>
       <p className="text-sm">Use the Patient Demo to book Dr. Evelyn Reed. Switch to the Doctor persona, choose Evelyn, and open Appointments. Start the consultation, save notes and a prescription draft, then complete it. Return to the patient appointment to view the completed summary.</p>

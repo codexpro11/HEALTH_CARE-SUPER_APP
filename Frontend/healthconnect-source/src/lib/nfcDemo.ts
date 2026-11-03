@@ -94,7 +94,7 @@ export function currentCredential() {
   return getNfcState().credentials[0];
 }
 export function maskedCredential(id: string) {
-  return 'HC-' + id.slice(7, 11).toUpperCase() + '--' + id.slice(-4).toUpperCase();
+  return 'HC-' + id.slice(7, 11).toUpperCase() + '-••••-' + id.slice(-4).toUpperCase();
 }
 export function issueCredential() {
   requirePatient();

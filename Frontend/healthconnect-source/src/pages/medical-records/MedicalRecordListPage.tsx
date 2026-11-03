@@ -182,7 +182,7 @@ export const MedicalRecordListPage: React.FC = () => {
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <p className="text-[10px] uppercase tracking-widest font-bold text-teal-700 mb-2">Phase 3 � Your health documents</p>
+          <p className="text-[10px] uppercase tracking-widest font-bold text-teal-700 mb-2">Phase 3 · Your health documents</p>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Medical Records</h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Find a report, follow your health timeline, and review who can access your summaries.
@@ -300,7 +300,7 @@ export const MedicalRecordListPage: React.FC = () => {
           isOpen
           onClose={() => setViewRecord(null)}
           title={viewRecord.title}
-          subtitle={`Dated ${viewRecord.date}  ${viewRecord.provider || 'Provider not specified'}`}
+          subtitle={`Dated ${viewRecord.date} • ${viewRecord.provider || 'Provider not specified'}`}
           maxWidth="xl"
         >
           <div className="space-y-4">
@@ -424,8 +424,8 @@ export const MedicalRecordListPage: React.FC = () => {
                   }}
                   className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-xs file:font-bold file:text-slate-700"
                 />
-                <p className="mt-2 text-xs text-slate-500">PDF, JPG, or PNG � up to 10 MB</p>
-                {selectedFile && <p className="mt-1 text-xs text-slate-600">{selectedFile.name} � {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>}
+                <p className="mt-2 text-xs text-slate-500">PDF, JPG, or PNG · up to 10 MB</p>
+                {selectedFile && <p className="mt-1 text-xs text-slate-600">{selectedFile.name} · {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>}
                 {attachmentError && <p role="alert" className="mt-2 text-xs font-medium text-rose-700">{attachmentError}</p>}
               </div>
             </div>

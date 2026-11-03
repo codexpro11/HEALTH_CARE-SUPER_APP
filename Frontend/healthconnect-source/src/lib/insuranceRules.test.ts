@@ -66,6 +66,6 @@ test('amount validation and identifier masking do not expose full identifiers', 
   assert.equal(validMoney(0.001), false);
   assert.equal(validDate('2028-02-29'), true);
   assert.equal(validDate('2026-02-29'), false);
-  assert.equal(maskIdentifier('PRIVATE-POLICY-1004'), '-1004');
+  assert.equal(maskIdentifier('PRIVATE-POLICY-1004'), '••••-1004');
 });
 

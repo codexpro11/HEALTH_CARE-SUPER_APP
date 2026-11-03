@@ -1,3 +1,5 @@
+import { downloadText } from '../../lib/downloadText';
+import { TelehealthLink } from '../../components/appointments/TelehealthLink';
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -118,20 +120,13 @@ export const AppointmentDetailPage: React.FC = () => {
                 <Video className="w-5 h-5" />
               </div>
               <div>
-                <p className="font-bold text-sm text-slate-900 dark:text-slate-100 transition-colors">Encrypted Telehealth Room</p>
+                <p className="font-bold text-sm text-slate-900 dark:text-slate-100 transition-colors">Video consultation</p>
                 <p className="text-xs text-teal-800 dark:text-teal-400 transition-colors">
-                  Room opens 10 minutes prior to scheduled session.
+                  Preview only; no video room has been created.
                 </p>
               </div>
             </div>
-            <a
-              href={appointment.meetingLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-xs text-center transition-colors"
-            >
-              Join Telehealth Room
-            </a>
+            <TelehealthLink href={appointment.meetingLink} />
           </div>
         )}
 
@@ -139,15 +134,15 @@ export const AppointmentDetailPage: React.FC = () => {
         <div className="border-t border-slate-100 dark:border-slate-800 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400 transition-colors">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
-            <span>Consultation Fee: $120.00 • Paid via HealthConnect Insurance Direct</span>
+            <span>Consultation fee: ${appointment.consultationFee} · Payment not verified</span>
           </div>
           <Button
             variant="outline"
             size="sm"
             leftIcon={<Download className="w-3.5 h-3.5" />}
-            onClick={() => alert('Downloading clinical encounter summary receipt...')}
+            onClick={() => downloadText('appointment-'+appointment.id+'.txt', 'APPOINTMENT SUMMARY - NOT A PAYMENT RECEIPT\n'+JSON.stringify(appointment, null, 2))}
           >
-            Download Receipt
+            Download visit summary
           </Button>
         </div>
       </Card>

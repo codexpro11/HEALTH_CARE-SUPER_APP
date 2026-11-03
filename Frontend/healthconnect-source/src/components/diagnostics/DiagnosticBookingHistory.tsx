@@ -30,9 +30,9 @@ export function DiagnosticBookingHistory() {
       <EmptyState icon={Microscope} title="No matching bookings" description="Book a test or change the status filter." /> :
       bookings.map(booking => <Card key={booking.id} className="space-y-3">
         <div className="flex flex-wrap justify-between gap-2"><h2 className="font-bold">{booking.testName}</h2><span className="text-xs font-bold bg-slate-100 dark:bg-slate-800 rounded-full px-3 py-1">{booking.status.replaceAll('_', ' ')}</span></div>
-        <p className="text-sm">{booking.centerName}</p><p className="text-sm text-slate-500">{booking.scheduledDate} at {booking.scheduledTime} � {booking.collectionType === 'HOME_COLLECTION' ? 'Home collection' : 'Center visit'}</p>
+        <p className="text-sm">{booking.centerName}</p><p className="text-sm text-slate-500">{booking.scheduledDate} at {booking.scheduledTime} · {booking.collectionType === 'HOME_COLLECTION' ? 'Home collection' : 'Center visit'}</p>
         {booking.patientAddress && <p className="text-sm">{booking.patientAddress}</p>}
-        <div className="flex flex-wrap justify-between gap-3 items-center"><p className="text-xs text-slate-500">{booking.bookingRef} � ${booking.price.toFixed(2)}</p>
+        <div className="flex flex-wrap justify-between gap-3 items-center"><p className="text-xs text-slate-500">{booking.bookingRef} · ${booking.price.toFixed(2)}</p>
           {booking.status === 'BOOKED' && <Button variant="outline" size="sm" onClick={() => { cancel.reset(); setSelected(booking); }}>Cancel booking</Button>}</div>
       </Card>)}
     <Modal isOpen={!!selected} onClose={() => { if (!cancel.isPending) setSelected(null); }} title="Cancel diagnostic booking?">

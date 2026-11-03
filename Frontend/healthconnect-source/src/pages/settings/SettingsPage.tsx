@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../auth/AuthContext';
@@ -66,7 +67,7 @@ export const SettingsPage: React.FC = () => {
         <Button onClick={handleSave}>Save preferences</Button>
       </Card>
       {isDemoMode && <Card className="p-6 space-y-4">
-        <h2 className="font-semibold">Demo preview</h2>
+        <h2 className="font-semibold">Demo preview</h2><p><Link className="underline" to="/app/progress">Developer roadmap</Link> · <Link className="underline" to="/app/compare">Interface comparisons</Link></p>
         <p className="text-sm text-slate-500">Bookings and records use fictional browser data. No API calls or payments are made.</p>
         <label className="block space-y-2">
           <span>Preview scenario</span>

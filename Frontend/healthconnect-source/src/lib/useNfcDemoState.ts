@@ -6,7 +6,7 @@ export function useNfcDemoState() {
   const [error, setError] = useState('');
   const refresh = () => {
     try { setState(getNfcState()); setError(''); }
-    catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to load NFC demo data.'); }
+    catch (failure) { setState(null); setError(failure instanceof Error ? failure.message : 'Unable to load NFC demo data.'); }
   };
   useEffect(() => {
     refresh();

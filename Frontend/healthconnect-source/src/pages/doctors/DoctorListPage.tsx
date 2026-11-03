@@ -232,9 +232,9 @@ export const DoctorListPage: React.FC = () => {
           {bookingSuccess ? (
             <div className="py-8 text-center space-y-3">
               <CheckCircle2 className="w-12 h-12 text-emerald-600 dark:text-emerald-500 mx-auto animate-bounce transition-colors" />
-              <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 transition-colors">Appointment Confirmed!</h4>
+              <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 transition-colors">Demo Appointment Saved!</h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xs mx-auto transition-colors">
-                Your consultation has been reserved. Redirecting to your appointments portal...
+                Your simulated booking has been saved in this browser. Redirecting to your appointments portal...
               </p>
             </div>
           ) : (

@@ -53,8 +53,6 @@ export const AppLayout: React.FC = () => {
   const cartCount = getItemCount();
 
   const navigationItems = [
-    { name: 'Phases & Changes', path: '/app/progress', icon: FileText },
-      { name: 'Before & After', path: '/app/compare', icon: FileText },
     { name: 'Dashboard', path: '/app/dashboard', icon: Activity },
     { name: 'Doctors', path: '/app/doctors', icon: UserCheck },
     { name: 'Appointments', path: '/app/appointments', icon: Calendar },

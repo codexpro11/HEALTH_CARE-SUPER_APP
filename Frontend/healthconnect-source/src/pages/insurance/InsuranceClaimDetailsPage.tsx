@@ -49,8 +49,8 @@ export const InsuranceClaimDetailsPage: React.FC = () => {
     <Card className="p-5 space-y-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
         <div><p className="text-xs font-bold text-slate-500 uppercase mb-1">Hospital / Facility</p><p>{claim.hospital}</p></div>
-        <div><p className="text-xs font-bold text-slate-500 uppercase mb-1">Policy</p><p>{policy?.provider} � {policy?.plan}</p><p className="font-mono text-xs mt-1">{policy ? maskIdentifier(policy.policyNumber) : 'Unavailable'}</p></div>
-        <div><p className="text-xs font-bold text-slate-500 uppercase mb-1">Service Date</p><p>{claim.date} � {claim.type}</p></div>
+        <div><p className="text-xs font-bold text-slate-500 uppercase mb-1">Policy</p><p>{policy?.provider} · {policy?.plan}</p><p className="font-mono text-xs mt-1">{policy ? maskIdentifier(policy.policyNumber) : 'Unavailable'}</p></div>
+        <div><p className="text-xs font-bold text-slate-500 uppercase mb-1">Service Date</p><p>{claim.date} · {claim.type}</p></div>
         <div><p className="text-xs font-bold text-slate-500 uppercase mb-1">Claimed / Approved</p><p>{formatMoney(claim.amount, policy?.currency ?? 'USD')} / {formatMoney(claim.approvedAmount, policy?.currency ?? 'USD')}</p></div>
       </div>
       <div><h2 className="text-sm font-bold mb-2">Claim Description</h2><p className="text-sm whitespace-pre-wrap">{claim.description}</p></div>

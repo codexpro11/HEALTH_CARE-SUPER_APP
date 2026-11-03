@@ -28,7 +28,7 @@ export function NotificationsPage() {
   const failure = mark.error ?? markAll.error;
   return <div className="space-y-6 max-w-4xl mx-auto">
     <div className="flex flex-wrap justify-between items-center gap-4"><div>
-      <p className="text-xs font-bold uppercase tracking-wider text-teal-700">Phase 5 � Your updates</p>
+      <p className="text-xs font-bold uppercase tracking-wider text-teal-700">Phase 5 · Your updates</p>
       <h1 className="text-2xl font-black mt-2">Notification inbox</h1>
       <p className="text-sm text-slate-500 mt-2">{isDemoMode ? 'Updates from your demo SOS actions. Read status stays saved for this account.' : 'Your account updates refresh every 15 seconds while this app is open.'}</p>
     </div><Button variant="outline" disabled={pending || unreadCount === 0 || query.isError} isLoading={markAll.isPending} onClick={() => markAll.mutate()}>Mark all as read</Button></div>

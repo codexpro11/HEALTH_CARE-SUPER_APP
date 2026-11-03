@@ -50,7 +50,7 @@ export const MedicalRecordCard: React.FC<MedicalRecordCardProps> = ({
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
                 {record.date}
               </span>
-              <span></span>
+              <span>•</span>
               <span className="flex items-center gap-1">
                 <UserCheck className="w-3.5 h-3.5 text-slate-400" />
                 {record.doctorName}

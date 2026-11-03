@@ -189,7 +189,7 @@ export const BeforeDiagnosticListPage: React.FC = () => {
           isOpen={!!selectedTest}
           onClose={() => setSelectedTest(null)}
           title={`Schedule Lab Test: ${selectedTest.name}`}
-          subtitle={`Turnaround: ${selectedTest.turnaroundTime}  Fee: $${selectedTest.price}`}
+          subtitle={`Turnaround: ${selectedTest.turnaroundTime} • Fee: $${selectedTest.price}`}
           maxWidth="md"
         >
           {bookingSuccess ? (

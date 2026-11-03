@@ -1,3 +1,4 @@
+import { TelehealthLink } from './TelehealthLink';
 import React from 'react';
 import { Calendar, Clock, Video, Building2, ExternalLink, RotateCcw, XCircle } from 'lucide-react';
 import { Appointment } from '../../types';
@@ -84,16 +85,7 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
 
         <div className="flex items-center gap-2">
           {appointment.meetingLink && isUpcoming && (
-            <a
-              href={appointment.meetingLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-600 text-white hover:bg-teal-700 text-xs font-semibold shadow-xs transition-colors"
-            >
-              <Video className="w-3.5 h-3.5" />
-              <span>Join Call</span>
-              <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
-            </a>
+            <TelehealthLink href={appointment.meetingLink} />
           )}
 
           {isUpcoming && onReschedule && (

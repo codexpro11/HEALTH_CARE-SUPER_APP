@@ -111,7 +111,7 @@ export function ProviderWorkspacePage({ view = 'dashboard' }: { view?: View }) {
 
   return <div className="space-y-6 max-w-6xl mx-auto">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><p className="text-xs uppercase tracking-wider font-bold text-teal-700 dark:text-teal-300">Phase 2 � Provider frontend</p>
+      <div><p className="text-xs uppercase tracking-wider font-bold text-teal-700 dark:text-teal-300">Phase 2 · Provider frontend</p>
         <h1 className="text-2xl font-black mt-1">{titles[view]}</h1>
         <p className="text-sm text-slate-500 mt-2">One account, paired patient and doctor personas. All clinical data here is simulated.</p></div>
       <Link to="/provider/progress" className="text-sm font-semibold text-teal-700 underline">View phases &amp; side-by-side changes</Link>
@@ -121,7 +121,7 @@ export function ProviderWorkspacePage({ view = 'dashboard' }: { view?: View }) {
         <select aria-label="Demo doctor" value={doctorId} className={inputClass} onChange={event => {
           try { selectDemoDoctor(event.target.value); setDoctorId(event.target.value); setNotice(''); setError(''); }
           catch (failure) { setError(failureMessage(failure)); }
-        }}>{mockDoctors.map(item => <option key={item.id} value={item.id}>{item.name} � {item.specialization}</option>)}</select>
+        }}>{mockDoctors.map(item => <option key={item.id} value={item.id}>{item.name} · {item.specialization}</option>)}</select>
       </label>
       <p className="text-xs text-slate-500 mt-2">{doctor.hospitalAffiliation}. Selecting a persona does not grant access to another account.</p>
     </Card>
@@ -148,10 +148,10 @@ export function ProviderWorkspacePage({ view = 'dashboard' }: { view?: View }) {
       </Card>
       <div className="space-y-3">{filtered.map(item => <Link key={item.id} to={'/provider/appointments/' + item.id} className="block">
         <Card className="p-5 flex flex-wrap items-center justify-between gap-4 hover:border-teal-400">
-          <div><h2 className="font-bold">{item.patientName}</h2><p className="text-sm text-slate-500 mt-1">{item.appointmentDate} � {item.appointmentTime} � {statusLabel(item.consultationType)}</p>
+          <div><h2 className="font-bold">{item.patientName}</h2><p className="text-sm text-slate-500 mt-1">{item.appointmentDate} · {item.appointmentTime} · {statusLabel(item.consultationType)}</p>
             <p className="text-xs text-slate-500 mt-2">{item.reasonForVisit}</p></div>
           <div className="text-right"><span className="text-xs font-bold rounded-full bg-teal-50 text-teal-800 px-3 py-1">{statusLabel(item.status)}</span>
-            <p className="text-xs text-teal-700 mt-3">Open appointment </p></div></Card></Link>)}
+            <p className="text-xs text-teal-700 mt-3">Open appointment →</p></div></Card></Link>)}
         {!filtered.length && !error && <Card className="p-6"><p>No appointments match this doctor or filter. Book a visit from the Patient Demo to add one.</p></Card>}
       </div>
     </>}
@@ -160,9 +160,9 @@ export function ProviderWorkspacePage({ view = 'dashboard' }: { view?: View }) {
       <p className="text-sm mt-2">This ID is not assigned to the current demo doctor and account.</p><Link to="/provider/appointments" className="underline text-teal-700">Return to appointments</Link></Card>}
 
     {view === 'appointments' && selected && <>
-      <Link to="/provider/appointments" className="text-sm underline text-teal-700"> All appointments</Link>
+      <Link to="/provider/appointments" className="text-sm underline text-teal-700">← All appointments</Link>
       <Card className="p-6 space-y-4"><div className="flex flex-wrap justify-between gap-3">
-        <div><h2 className="text-xl font-bold">{selected.patientName}</h2><p className="text-sm text-slate-500">{selected.appointmentDate} � {selected.appointmentTime}</p></div>
+        <div><h2 className="text-xl font-bold">{selected.patientName}</h2><p className="text-sm text-slate-500">{selected.appointmentDate} · {selected.appointmentTime}</p></div>
         <span className="text-sm font-bold">{statusLabel(selected.status)}</span></div>
         <p className="text-sm">{selected.reasonForVisit}</p>
         <div className="flex flex-wrap gap-2">{allowedProviderTransitions(selected.status).filter(next => next !== 'COMPLETED').map(next =>
@@ -184,7 +184,7 @@ export function ProviderWorkspacePage({ view = 'dashboard' }: { view?: View }) {
             <Button type="button" onClick={() => changeStatus('COMPLETED')}>Complete Demo Consultation</Button></div>}
         </form>
         <div className="space-y-2">{selected.providerTimeline?.map((event, index) =>
-          <p key={index} className="text-xs text-slate-500">{statusLabel(event.status)} � {new Date(event.at).toLocaleString()}</p>)}</div>
+          <p key={index} className="text-xs text-slate-500">{statusLabel(event.status)} · {new Date(event.at).toLocaleString()}</p>)}</div>
       </Card>
     </>}
 
@@ -203,7 +203,7 @@ export function ProviderWorkspacePage({ view = 'dashboard' }: { view?: View }) {
         <Link to="/provider/nfc-scanner" className="text-teal-700 underline">Open NFC scanner</Link></Card> : <>
         <p className="text-sm text-teal-700">Showing standard record summaries within the current consent scopes. Private attachments remain excluded.</p>
         {records.map(record => <Card key={record.id} className="p-5 space-y-2"><h2 className="font-bold">{record.title}</h2>
-          <p className="text-xs text-slate-500">{statusLabel(record.recordType)} � {record.date}</p><p className="text-sm">{record.summary}</p></Card>)}
+          <p className="text-xs text-slate-500">{statusLabel(record.recordType)} · {record.date}</p><p className="text-sm">{record.summary}</p></Card>)}
         {!records.length && <Card className="p-6">No standard record summaries are allowed by the current consent scopes.</Card>}
       </>}
     </>}

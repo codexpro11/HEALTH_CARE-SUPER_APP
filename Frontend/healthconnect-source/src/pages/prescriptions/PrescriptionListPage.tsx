@@ -1,3 +1,4 @@
+import { downloadText } from '../../lib/downloadText';
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +13,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { ErrorState } from '../../components/common/ErrorState';
 
 export const PrescriptionListPage: React.FC = () => {
-  const [filter, setFilter] = useState<'ACTIVE' | 'FULFILLED' | 'ALL'>('ACTIVE');
+  const [filter, setFilter] = useState<'ACTIVE' | 'COMPLETED' | 'ALL'>('ACTIVE');
   const [selectedRx, setSelectedRx] = useState<Prescription | null>(null);
   const navigate = useNavigate();
 
@@ -33,7 +34,7 @@ export const PrescriptionListPage: React.FC = () => {
             Digital Prescriptions
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 transition-colors">
-            Digitally signed e-prescriptions with dosage directions, refill counts, and direct pharmacy transfer.
+            Sample prescription summaries. Downloads are not signed prescriptions and cannot be used to dispense medication.
           </p>
         </div>
 
@@ -59,14 +60,14 @@ export const PrescriptionListPage: React.FC = () => {
           Active Prescriptions
         </button>
         <button
-          onClick={() => setFilter('FULFILLED')}
+          onClick={() => setFilter('COMPLETED')}
           className={`pb-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all ${
-            filter === 'FULFILLED'
+            filter === 'COMPLETED'
               ? 'border-teal-600 text-teal-700 dark:border-teal-500 dark:text-teal-400'
               : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
           }`}
         >
-          Fulfilled History
+          Completed History
         </button>
         <button
           onClick={() => setFilter('ALL')}
@@ -98,7 +99,7 @@ export const PrescriptionListPage: React.FC = () => {
               key={rx.id}
               prescription={rx}
               onViewDetails={(p) => setSelectedRx(p)}
-              onDownload={(p) => alert(`Downloading verified prescription PDF #${p.prescriptionNumber}...`)}
+              onDownload={(p) => downloadText('prescription-'+p.prescriptionNumber+'.txt', 'SAMPLE SUMMARY - NOT A SIGNED PRESCRIPTION\n'+JSON.stringify(p,null,2))}
             />
           ))}
         </div>
@@ -153,9 +154,9 @@ export const PrescriptionListPage: React.FC = () => {
                 variant="outline"
                 size="sm"
                 leftIcon={<Download className="w-3.5 h-3.5" />}
-                onClick={() => alert('Downloading official prescription PDF...')}
+                onClick={() => downloadText('prescription-summary.txt', 'SAMPLE SUMMARY - NOT A SIGNED PRESCRIPTION\n'+JSON.stringify(selectedRx,null,2))}
               >
-                Export PDF
+                Download summary
               </Button>
               <Button
                 variant="primary"
@@ -166,7 +167,7 @@ export const PrescriptionListPage: React.FC = () => {
                   navigate('/app/pharmacy');
                 }}
               >
-                Send to Pharmacy
+                Browse Pharmacy
               </Button>
             </div>
           </div>

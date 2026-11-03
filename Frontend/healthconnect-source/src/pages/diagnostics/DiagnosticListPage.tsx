@@ -200,7 +200,7 @@ export const DiagnosticListPage: React.FC = () => {
           isOpen={!!selectedTest}
           onClose={() => { if (!bookTestMutation.isPending) setSelectedTest(null); }}
           title={`Schedule Lab Test: ${selectedTest.name}`}
-          subtitle={`Turnaround: ${selectedTest.turnaroundTime}  Fee: $${selectedTest.price}`}
+          subtitle={`Turnaround: ${selectedTest.turnaroundTime} • Fee: $${selectedTest.price}`}
           maxWidth="md"
         >
           {bookingSuccess ? (
@@ -226,7 +226,7 @@ export const DiagnosticListPage: React.FC = () => {
               />
               {centersQuery.isLoading ? <p>Loading diagnostic centers.</p> : centersQuery.isError ? <ErrorState message={errorMessage(centersQuery.error)} onRetry={() => centersQuery.refetch()} /> :
                 <label className="block text-sm">Diagnostic center<select className="w-full rounded-xl border p-2.5 bg-white dark:bg-slate-900 mt-1" value={centerId} disabled={bookTestMutation.isPending} onChange={event => setCenterId(event.target.value)}>
-                  <option value="">Choose a center</option>{centers.map(center => <option key={center.id} value={center.id}>{center.name} � {center.distanceKm} km</option>)}
+                  <option value="">Choose a center</option>{centers.map(center => <option key={center.id} value={center.id}>{center.name} · {center.distanceKm} km</option>)}
                 </select>{centers.length === 0 && <span className="text-rose-700">No center offers this test.</span>}</label>}
               {centers.find(center => center.id === centerId) && <p className="text-xs text-slate-500">{centers.find(center => center.id === centerId)?.address}<br />{centers.find(center => center.id === centerId)?.openingHours}</p>}
               <Input label={isDemoMode ? 'Demo collection time (AM/PM)' : 'Requested collection time (AM/PM)'} value={bookingTime} onChange={event => setBookingTime(event.target.value)} list="collection-times" disabled={bookTestMutation.isPending} />

@@ -18,14 +18,14 @@ export const healthcareChanges = [
 export function ServicesComparisonPage() {
   if (!isDemoMode) return <Card><h1 className="text-xl font-bold">Comparison available in demo mode</h1><Link to="/app/diagnostics" className="text-teal-700 underline">Open diagnostics</Link></Card>;
   return <div className="space-y-6">
-    <div><p className="text-xs font-bold uppercase tracking-wider text-teal-700">HealthConnect � Phase 4</p>
+    <div><p className="text-xs font-bold uppercase tracking-wider text-teal-700">HealthConnect · Phase 4</p>
       <h1 className="text-2xl font-black mt-2">Healthcare Services: Before &amp; After</h1>
       <p className="text-sm text-slate-500 mt-2">The previous diagnostics screen is preserved on the left. Use the updated screen on the right to search, book and manage demo tests.</p>
-      <p className="font-semibold text-teal-800 dark:text-teal-200 mt-2">Current phase: 4 � Four required phases follow (5-8) � Phase 9 optional</p></div>
+      <p className="font-semibold text-teal-800 dark:text-teal-200 mt-2">Current phase: 4 · Four required phases follow (5-8) · Phase 9 optional</p></div>
     <div className="grid xl:grid-cols-2 gap-5">
-      <section className="min-w-0 rounded-2xl border overflow-hidden"><div className="p-4 bg-slate-100 dark:bg-slate-800"><h2 className="font-bold">Before � Phase 3 services</h2><p className="text-xs mt-1">Preserved screen � read-only</p></div>
+      <section className="min-w-0 rounded-2xl border overflow-hidden"><div className="p-4 bg-slate-100 dark:bg-slate-800"><h2 className="font-bold">Before · Phase 3 services</h2><p className="text-xs mt-1">Preserved screen · read-only</p></div>
         <div className="h-[760px] overflow-auto p-4 bg-slate-50 dark:bg-slate-950" aria-label="Previous diagnostics interface"><div ref={node => { if (node) node.inert = true; }}><BeforeDiagnosticListPage /></div></div></section>
-      <section className="min-w-0 rounded-2xl border border-teal-300 overflow-hidden"><div className="p-4 bg-teal-50 dark:bg-teal-950"><h2 className="font-bold">After � Phase 4 services</h2><p className="text-xs mt-1">Interactive demo � changes saved in this browser</p></div>
+      <section className="min-w-0 rounded-2xl border border-teal-300 overflow-hidden"><div className="p-4 bg-teal-50 dark:bg-teal-950"><h2 className="font-bold">After · Phase 4 services</h2><p className="text-xs mt-1">Interactive demo · changes saved in this browser</p></div>
         <div className="h-[760px] overflow-auto p-4 bg-slate-50 dark:bg-slate-950"><DiagnosticListPage /></div></section>
     </div>
     <Card className="overflow-x-auto"><table className="w-full text-sm min-w-[650px]"><thead><tr><th className="p-3 text-left">Feature</th><th className="p-3 text-left">Before</th><th className="p-3 text-left text-teal-700">After</th></tr></thead>

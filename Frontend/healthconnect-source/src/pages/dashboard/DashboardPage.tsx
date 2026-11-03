@@ -1,3 +1,4 @@
+import { TelehealthLink } from '../../components/appointments/TelehealthLink';
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -176,14 +177,7 @@ export const DashboardPage: React.FC = () => {
 
                 <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex gap-3 transition-colors">
                   {nextAppointment.meetingLink ? (
-                    <a
-                      href={nextAppointment.meetingLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 bg-teal-600 text-white py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-teal-700 text-center transition-colors"
-                    >
-                      Join Teleconsult
-                    </a>
+                    <TelehealthLink href={nextAppointment.meetingLink} />
                   ) : (
                     <button
                       onClick={() => navigate(`/app/appointments/${nextAppointment.id}`)}

@@ -53,7 +53,7 @@ export function BrowserAlertSettings() {
   };
   return <Card className="p-5 space-y-3"><h2 className="font-bold">Browser alerts</h2>
     <p className="text-sm text-slate-500">{isDemoMode ? 'Optional alerts on this device while the app is open. Inbox updates work without permission. Background push, SMS and email are not enabled.' : 'Your inbox retrieves account updates while the app is open. Background notifications are not yet enabled.'}</p>
-    <p className="text-xs">Browser permission: {permission} � Account alerts: {enabled ? 'enabled' : 'disabled'}</p>
+    <p className="text-xs">Browser permission: {permission} · Account alerts: {enabled ? 'enabled' : 'disabled'}</p>
     {isDemoMode && <div className="flex flex-wrap gap-2">{enabled ? <Button variant="outline" onClick={disable}>Disable browser alerts</Button> : <Button variant="outline" disabled={!supported || busy} isLoading={busy} onClick={enable}>Enable browser alerts</Button>}
       {enabled && <Button variant="ghost" onClick={test}>Send test alert</Button>}</div>}
     {message && <p role="status" className="text-sm text-teal-700 dark:text-teal-300">{message}</p>}

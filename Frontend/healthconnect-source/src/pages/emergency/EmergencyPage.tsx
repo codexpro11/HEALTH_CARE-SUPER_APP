@@ -31,7 +31,7 @@ export function EmergencyPage() {
   };
   return <div className="max-w-5xl mx-auto space-y-6">
     <div className="flex flex-wrap justify-between items-start gap-4">
-      <div><p className="text-xs font-bold uppercase tracking-wider text-rose-600">Phase 5 � Emergency & notifications</p>
+      <div><p className="text-xs font-bold uppercase tracking-wider text-rose-600">Phase 5 · Emergency & notifications</p>
         <h1 className="text-2xl font-black mt-2 flex items-center gap-2"><Siren className="text-rose-600" />Emergency assistance</h1>
         <p className="text-sm text-slate-500 mt-2">Save a request, check its status and keep your location details together.</p></div>
       <Link to="/app/notifications" className="text-teal-700 dark:text-teal-300 underline text-sm">Open notification inbox</Link>
@@ -40,7 +40,7 @@ export function EmergencyPage() {
       <div className="flex flex-wrap justify-between items-center gap-4">
         <div><h2 className="font-bold text-rose-900 dark:text-rose-200">{isDemoMode ? 'Demo workspace - no dispatch or contact alerts' : 'For urgent assistance, call emergency services directly'}</h2>
           <p className="text-sm mt-1">{isDemoMode ? 'Requests remain in this browser. No ambulance, hospital bed or arrival time is assigned.' : 'An app request is not a confirmed response. Use the phone link for direct assistance.'}</p></div>
-        <a href="tel:112" className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-3 text-white font-bold"><Phone className="w-4 h-4" />Call 112 � India</a>
+        <a href="tel:112" className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-3 text-white font-bold"><Phone className="w-4 h-4" />Call 112 · India</a>
       </div>
       <a href="https://112.gov.in/" target="_blank" rel="noreferrer" className="inline-block mt-3 text-xs underline">India Emergency Response Support System</a>
     </Card>
@@ -51,8 +51,8 @@ export function EmergencyPage() {
         <span className="h-fit rounded-full bg-amber-100 text-amber-900 text-xs font-bold px-3 py-2">{request.status}</span></div>
       <div className="grid sm:grid-cols-2 gap-5 text-sm">
         <div><p className="text-slate-500">Request type</p><p className="font-semibold mt-1">{request.emergencyType}</p><p className="text-xs text-slate-500 mt-2">{new Date(request.createdAt).toLocaleString()}</p></div>
-        <div><p className="text-slate-500 flex items-center gap-1"><MapPin className="w-4 h-4" />Saved location � {request.locationSource ?? 'not specified'}</p><p className="font-semibold mt-1 break-words">{request.address}</p>
-          {request.latitude !== undefined && request.longitude !== undefined && <p className="text-xs mt-2">{request.latitude.toFixed(5)}, {request.longitude.toFixed(5)} � accuracy about {Math.round(request.accuracyMeters ?? 0)} m{request.locationCapturedAt && ' � captured ' + new Date(request.locationCapturedAt).toLocaleTimeString()}</p>}</div>
+        <div><p className="text-slate-500 flex items-center gap-1"><MapPin className="w-4 h-4" />Saved location · {request.locationSource ?? 'not specified'}</p><p className="font-semibold mt-1 break-words">{request.address}</p>
+          {request.latitude !== undefined && request.longitude !== undefined && <p className="text-xs mt-2">{request.latitude.toFixed(5)}, {request.longitude.toFixed(5)} · accuracy about {Math.round(request.accuracyMeters ?? 0)} m{request.locationCapturedAt && ' · captured ' + new Date(request.locationCapturedAt).toLocaleTimeString()}</p>}</div>
       </div>
       <p className="text-sm text-slate-500">{isDemoMode ? 'Awaiting a real service integration. This demo does not progress to dispatched or arrived.' : 'Status is the last server response. Refresh to retrieve changes.'}</p>
       <div className="flex flex-wrap gap-3"><Button variant="outline" disabled={busy} onClick={() => user && restore(user.id)}>Refresh status</Button>
@@ -64,7 +64,7 @@ export function EmergencyPage() {
     </Card>}
     <div className="grid sm:grid-cols-2 gap-4">
       <Card className="p-5 space-y-2"><h2 className="font-bold">Emergency contact</h2>
-        {contactPhone ? <><p className="text-sm">{contact?.name} � {contact?.relationship}</p>{isDemoMode ? <p className="text-xs text-slate-500">Sample contact details. No automatic message is sent.</p> : <a href={'tel:' + contactPhone} className="inline-block text-teal-700 dark:text-teal-300 underline">Call saved contact</a>}</> : <p className="text-sm text-slate-500">Add a contact to your profile for quick access.</p>}
+        {contactPhone ? <><p className="text-sm">{contact?.name} · {contact?.relationship}</p>{isDemoMode ? <p className="text-xs text-slate-500">Sample contact details. No automatic message is sent.</p> : <a href={'tel:' + contactPhone} className="inline-block text-teal-700 dark:text-teal-300 underline">Call saved contact</a>}</> : <p className="text-sm text-slate-500">Add a contact to your profile for quick access.</p>}
         <Link to="/app/profile" className="inline-block text-sm underline text-teal-700 dark:text-teal-300">Edit contact</Link></Card>
       <Card className="p-5 space-y-2"><h2 className="font-bold">Find healthcare services</h2><p className="text-sm text-slate-500">Directory entries are sample data in demo mode. Confirm availability directly.</p>
         <Link to="/app/hospitals" className="inline-block text-teal-700 dark:text-teal-300 underline text-sm">Hospital directory</Link></Card>
@@ -74,7 +74,7 @@ export function EmergencyPage() {
       {history.isError ? <ErrorState message={history.error.message} onRetry={() => history.refetch()} /> : history.isLoading ? <p role="status">Loading history.</p> : items.length === 0 ? <p className="text-sm text-slate-500">No requests match this view.</p> : items.map(item => <div key={item.id} className="border-t pt-4 text-sm space-y-1">
         <div className="flex flex-wrap justify-between gap-2"><span className="font-bold">{item.emergencyType}</span><span className="text-xs font-semibold">{item.status}</span></div>
         <p className="break-words">{item.address}</p><p className="text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</p>
-        {item.cancelledAt && <p className="text-xs text-slate-500">Cancelled {new Date(item.cancelledAt).toLocaleString()} � {item.cancellationReason}</p>}
+        {item.cancelledAt && <p className="text-xs text-slate-500">Cancelled {new Date(item.cancelledAt).toLocaleString()} · {item.cancellationReason}</p>}
       </div>)}
     </Card>
     <Modal isOpen={confirmCancel} onClose={() => { if (!busy) setConfirmCancel(false); }} title="Cancel this request?">

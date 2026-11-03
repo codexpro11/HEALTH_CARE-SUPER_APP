@@ -31,10 +31,10 @@ export const AuthLayout: React.FC = () => {
         <div className="mt-6 text-center space-y-2">
           <div className="inline-flex items-center gap-1.5 text-xs text-slate-500 font-medium">
             <Lock className="w-3.5 h-3.5 text-emerald-600" />
-            <span>256-bit TLS Encryption • HIPAA Compliant Patient Portal</span>
+            <span>Healthcare preview — use sample information only</span>
           </div>
           <p className="text-[11px] text-slate-400">
-            © 2026 HealthConnect Systems Inc. All clinical data protected under privacy laws.
+            © 2026 HealthConnect Systems Inc. Live clinical services are not verified in this preview.
           </p>
         </div>
       </div>

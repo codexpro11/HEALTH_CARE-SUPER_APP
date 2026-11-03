@@ -35,7 +35,7 @@ function NfcRequestHistory() {
         <div className="flex flex-wrap justify-between gap-2"><p className="font-semibold text-sm">{item.accessType === 'EMERGENCY' ? 'Emergency' : 'Standard'} scan <span className={item.outcome === 'GRANTED' ? 'text-teal-700' : 'text-rose-700'}>{item.outcome.toLowerCase()}</span></p>
           <time className="text-xs text-slate-500" dateTime={item.timestamp}>{new Date(item.timestamp).toLocaleString()}</time></div>
         <p className="text-xs text-slate-600 dark:text-slate-400">{item.reason}</p>
-        {!!item.scopes.length && <p className="text-xs text-slate-500">{item.scopes.join(' � ')}</p>}
+        {!!item.scopes.length && <p className="text-xs text-slate-500">{item.scopes.join(' · ')}</p>}
       </li>)}</ol>}
   </Card>;
 }

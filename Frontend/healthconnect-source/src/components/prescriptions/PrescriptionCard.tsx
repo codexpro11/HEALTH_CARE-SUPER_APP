@@ -89,7 +89,7 @@ export const PrescriptionCard: React.FC<PrescriptionCardProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 transition-colors">
         <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 transition-colors">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-500" />
-          <span>Digitally Signed: {prescription.digitalSignatureId.slice(0, 16)}...</span>
+          <span>Sample signature: {prescription.digitalSignatureId.slice(0, 16)}...</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -106,7 +106,7 @@ export const PrescriptionCard: React.FC<PrescriptionCardProps> = ({
             leftIcon={<Download className="w-3.5 h-3.5" />}
             onClick={() => onDownload?.(prescription)}
           >
-            PDF Export
+            Download summary
           </Button>
         </div>
       </div>

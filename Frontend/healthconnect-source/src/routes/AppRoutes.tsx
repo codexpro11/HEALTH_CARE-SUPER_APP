@@ -1,4 +1,6 @@
 import React from 'react';
+import { ProviderAccountPage } from '../pages/provider/ProviderAccountPage';
+import { DemoNoticePage } from '../pages/auth/DemoNoticePage';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { homeForRole, isProviderRole } from '../lib/nfcAuthorization';
@@ -93,6 +95,7 @@ export const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
+      <Route path="/demo-notice" element={<DemoNoticePage />} />
       {/* Root redirect */}
       <Route path="/" element={<Navigate to={isAuthenticated ? homeForRole(role) : '/login'} replace />} />
       <Route path="/workspace" element={!isAuthenticated ? <Navigate to="/login" replace /> : role === 'PATIENT' || isProviderRole(role) ? <Navigate to={homeForRole(role)} replace /> : <RoleWorkspacePage />} />
@@ -168,9 +171,9 @@ export const AppRoutes: React.FC = () => {
         <Route path="appointments" element={<ProviderWorkspacePage view="appointments" />} />
         <Route path="medical-records" element={<ProviderWorkspacePage view="records" />} />
         <Route path="prescriptions" element={<ProviderWorkspacePage view="prescriptions" />} />
-        <Route path="insurance" element={<div className="p-8">Provider Insurance - Coming Soon</div>} />
-        <Route path="profile" element={<div className="p-8">Provider Profile - Coming Soon</div>} />
-        <Route path="settings" element={<div className="p-8">Provider Settings - Coming Soon</div>} />
+        <Route path="insurance" element={<ProviderAccountPage view="insurance" />} />
+        <Route path="profile" element={<ProviderAccountPage view="profile" />} />
+        <Route path="settings" element={<ProviderAccountPage view="settings" />} />
       </Route>
 
       {/* Fallback */}

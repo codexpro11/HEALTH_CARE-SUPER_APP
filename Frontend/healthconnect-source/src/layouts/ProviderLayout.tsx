@@ -15,11 +15,12 @@ import {
   Scan,
   Users
 } from 'lucide-react';
+import { isDemoMode } from '../lib/demo';
 import { useAuth } from '../auth/AuthContext';
 import { useThemeStore } from '../stores/themeStore';
 
 export const ProviderLayout: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, switchRole } = useAuth();
   const { theme, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -43,12 +44,13 @@ export const ProviderLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-50 flex flex-col antialiased transition-colors duration-200">
+      {isDemoMode && <div className="p-3 text-center"><button className="underline font-semibold" onClick={()=>{switchRole('PATIENT');navigate('/app/settings');}}>Return to patient demo</button></div>}
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-xs h-16 transition-colors">
         <div className="flex items-center justify-between px-4 h-full">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsMobileMenuOpen(true)}
+              aria-label="Open provider navigation" onClick={() => setIsMobileMenuOpen(true)}
               className="lg:hidden p-2 -ml-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
             >
               <Menu className="w-5 h-5" />
@@ -114,7 +116,7 @@ export const ProviderLayout: React.FC = () => {
         {/* Mobile Sidebar Overlay */}
         {isMobileMenuOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" aria-label="Close provider navigation" onClick={() => setIsMobileMenuOpen(false)} />
             <aside className="fixed top-0 left-0 bottom-0 w-72 bg-white dark:bg-slate-900 flex flex-col shadow-2xl transition-transform transform translate-x-0">
               <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2 text-teal-700 dark:text-teal-500">
