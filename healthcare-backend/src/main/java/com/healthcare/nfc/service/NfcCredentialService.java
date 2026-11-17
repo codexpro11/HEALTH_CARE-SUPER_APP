@@ -1,83 +1,290 @@
 package com.healthcare.nfc.service;
 
+import com.healthcare.common.exception.ConflictException;
+import com.healthcare.common.exception.ResourceNotFoundException;
+import com.healthcare.hospital.entity.Hospital;
+import com.healthcare.hospital.repository.HospitalRepository;
+import com.healthcare.hospital.repository.UserHospitalRepository;
+import com.healthcare.nfc.dto.IssueNfcCredentialRequest;
+import com.healthcare.nfc.dto.NfcAccessRequest;
+import com.healthcare.nfc.dto.NfcAccessResponse;
+import com.healthcare.nfc.entity.NfcAccessAudit;
 import com.healthcare.nfc.entity.NfcCredential;
 import com.healthcare.nfc.entity.NfcCredentialStatus;
+import com.healthcare.nfc.repository.NfcAccessAuditRepository;
 import com.healthcare.nfc.repository.NfcCredentialRepository;
-import com.healthcare.nfc.dto.NfcCredentialResponse;
 import com.healthcare.patient.entity.Patient;
 import com.healthcare.patient.repository.PatientRepository;
 import com.healthcare.user.entity.User;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
+import java.util.Locale;
 
 @Service
+@RequiredArgsConstructor
 public class NfcCredentialService {
+
     private final NfcCredentialRepository credentialRepository;
     private final PatientRepository patientRepository;
-
-    public NfcCredentialService(
-        NfcCredentialRepository credentialRepository,
-        PatientRepository patientRepository
-    ) {
-        this.credentialRepository = credentialRepository;
-        this.patientRepository = patientRepository;
-    }
-
-    @Transactional
-    public NfcCredentialResponse issueCredential(User user) {
-        Patient patient = patientRepository.findByUserId(user.getId())
-            .orElseThrow(() -> new IllegalArgumentException("Patient profile not found"));
-
-        credentialRepository.findAllByPatient_IdAndStatus(
-            patient.getId(), NfcCredentialStatus.ACTIVE
-        ).forEach(existing -> {
-            existing.setStatus(NfcCredentialStatus.REVOKED);
-            credentialRepository.save(existing);
-        });
-
-        LocalDateTime now = LocalDateTime.now();
-        NfcCredential credential = NfcCredential.builder()
-            .patient(patient)
-            .credentialId(UUID.randomUUID().toString())
-            .status(NfcCredentialStatus.ACTIVE)
-            .issuedAt(now)
-            .expiresAt(now.plusDays(365))
-            .build();
-
-        return NfcCredentialResponse.from(credentialRepository.save(credential));
-    }
+    private final HospitalRepository hospitalRepository;
+    private final UserHospitalRepository userHospitalRepository;
+    private final NfcAccessAuditRepository auditRepository;
 
     @Transactional(readOnly = true)
-    public List<NfcCredentialResponse> getMyCredentials(User user) {
-        Patient patient = patientRepository.findByUserId(user.getId())
-            .orElseThrow(() -> new IllegalArgumentException("Patient profile not found"));
+    public List<NfcCredential> getCredentialsForUser(Long userId) {
+        Patient patient = getPatient(userId);
 
         return credentialRepository
-            .findAllByPatient_IdOrderByCreatedAtDesc(patient.getId())
-            .stream()
-            .map(NfcCredentialResponse::from)
-            .toList();
+                .findAllByPatient_IdOrderByIssuedAtDesc(patient.getId());
     }
 
     @Transactional
-    public NfcCredentialResponse revokeCredential(Long credentialId, User user) {
-        Patient patient = patientRepository.findByUserId(user.getId())
-            .orElseThrow(() -> new IllegalArgumentException("Patient profile not found"));
+    public NfcCredential issueCredential(
+            Long userId,
+            IssueNfcCredentialRequest request
+    ) {
+        Patient patient = getPatient(userId);
+        String uid = normalizeUid(request.getCredentialId());
 
-        NfcCredential credential = credentialRepository.findById(credentialId)
-            .orElseThrow(() -> new IllegalArgumentException("NFC credential not found"));
-
-        if (!credential.getPatient().getId().equals(patient.getId())) {
-            throw new IllegalArgumentException("Credential does not belong to this patient");
+        if (credentialRepository.existsByCredentialId(uid)) {
+            throw new ConflictException(
+                    "This NFC tag is already mapped to a patient"
+            );
         }
-        if (credential.getStatus() != NfcCredentialStatus.ACTIVE) {
-            throw new IllegalArgumentException("Credential is not active");
+
+        NfcCredential credential = NfcCredential.builder()
+                .patient(patient)
+                .credentialId(uid)
+                .status(NfcCredentialStatus.ACTIVE)
+                .issuedAt(LocalDateTime.now())
+                .expiresAt(request.getExpiresAt())
+                .build();
+
+        try {
+            return credentialRepository.saveAndFlush(credential);
+        } catch (DataIntegrityViolationException exception) {
+            throw new ConflictException(
+                    "This NFC tag is already mapped to a patient"
+            );
+        }
+    }
+
+    @Transactional
+    public NfcCredential revokeCredential(
+            Long userId,
+            Long credentialId
+    ) {
+        Patient patient = getPatient(userId);
+
+        NfcCredential credential = credentialRepository
+                .findByIdAndPatient_Id(credentialId, patient.getId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "NFC credential not found"
+                        )
+                );
+
+        refreshExpiry(credential);
+
+        if (credential.getStatus() == NfcCredentialStatus.REVOKED) {
+            throw new ConflictException(
+                    "This NFC card has already been revoked"
+            );
         }
 
         credential.setStatus(NfcCredentialStatus.REVOKED);
-        return NfcCredentialResponse.from(credentialRepository.save(credential));
+
+        return credentialRepository.save(credential);
+    }
+
+    @Transactional
+    public int expireCredentials() {
+        LocalDateTime now = LocalDateTime.now();
+
+        List<NfcCredential> expired = credentialRepository
+                .findAllByStatusAndExpiresAtIsNotNullAndExpiresAtLessThanEqual(
+                        NfcCredentialStatus.ACTIVE,
+                        now
+                );
+
+        for (NfcCredential credential : expired) {
+            credential.setStatus(NfcCredentialStatus.EXPIRED);
+        }
+
+        credentialRepository.saveAll(expired);
+        return expired.size();
+    }
+
+    @Transactional
+    public NfcAccessResponse verifyAccess(
+            User accessor,
+            NfcAccessRequest request,
+            String ipAddress
+    ) {
+        Hospital hospital = hospitalRepository.findById(
+                request.getHospitalId()
+        ).orElseThrow(() ->
+                new ResourceNotFoundException("Hospital not found")
+        );
+
+        boolean linked = userHospitalRepository
+                .existsByUserIdAndHospitalId(
+                        accessor.getId(),
+                        hospital.getId()
+                );
+
+        if (!linked) {
+            throw new ConflictException(
+                    "You are not authorized to access this hospital"
+            );
+        }
+
+        if (!hospital.isActive() || !hospital.isVerified()) {
+            throw new ConflictException(
+                    "Hospital is inactive or not verified"
+            );
+        }
+
+        String uid = normalizeUid(request.getCredentialId());
+
+        NfcCredential credential = credentialRepository
+                .findByCredentialId(uid)
+                .orElse(null);
+
+        if (credential == null) {
+            recordAudit(
+                    null,
+                    null,
+                    accessor,
+                    hospital,
+                    request,
+                    false,
+                    "NFC credential not found",
+                    ipAddress
+            );
+
+            return new NfcAccessResponse(
+                    false,
+                    "NFC card is not mapped",
+                    null,
+                    null,
+                    null
+            );
+        }
+
+        Patient patient = credential.getPatient();
+
+        refreshExpiry(credential);
+
+        if (credential.getStatus() != NfcCredentialStatus.ACTIVE) {
+            String reason;
+
+            if (credential.getStatus() == NfcCredentialStatus.REVOKED) {
+                reason = "NFC card has been revoked";
+            } else {
+                reason = "NFC card has expired";
+            }
+
+            recordAudit(
+                    credential,
+                    patient,
+                    accessor,
+                    hospital,
+                    request,
+                    false,
+                    reason,
+                    ipAddress
+            );
+
+            return new NfcAccessResponse(
+                    false,
+                    reason,
+                    credential.getCredentialId(),
+                    patient.getId(),
+                    credential.getStatus().name()
+            );
+        }
+
+        credential.setLastUsedAt(LocalDateTime.now());
+        credentialRepository.save(credential);
+
+        recordAudit(
+                credential,
+                patient,
+                accessor,
+                hospital,
+                request,
+                true,
+                null,
+                ipAddress
+        );
+
+        return new NfcAccessResponse(
+                true,
+                "NFC card verified",
+                credential.getCredentialId(),
+                patient.getId(),
+                credential.getStatus().name()
+        );
+    }
+
+    private void refreshExpiry(NfcCredential credential) {
+        if (credential.getStatus() == NfcCredentialStatus.ACTIVE
+                && credential.isExpired()) {
+
+            credential.setStatus(NfcCredentialStatus.EXPIRED);
+            credentialRepository.save(credential);
+        }
+    }
+
+    private void recordAudit(
+            NfcCredential credential,
+            Patient patient,
+            User accessor,
+            Hospital hospital,
+            NfcAccessRequest request,
+            boolean success,
+            String failureReason,
+            String ipAddress
+    ) {
+        NfcAccessAudit audit = NfcAccessAudit.builder()
+                .nfcCredential(credential)
+                .patient(patient)
+                .accessorUser(accessor)
+                .hospital(hospital)
+                .accessType(request.getAccessType())
+                .purpose(request.getPurpose())
+                .timestamp(LocalDateTime.now())
+                .success(success)
+                .failureReason(failureReason)
+                .ipAddress(ipAddress)
+                .build();
+
+        auditRepository.save(audit);
+    }
+
+    private Patient getPatient(Long userId) {
+        return patientRepository.findByUserId(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Patient profile not found"
+                        )
+                );
+    }
+
+    private String normalizeUid(String uid) {
+        if (uid == null || uid.isBlank()) {
+            throw new IllegalArgumentException("NFC UID is required");
+        }
+
+        return uid.replace(":", "")
+                .replace("-", "")
+                .trim()
+                .toUpperCase(Locale.ROOT);
     }
 }

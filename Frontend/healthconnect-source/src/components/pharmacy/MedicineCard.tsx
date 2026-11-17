@@ -39,7 +39,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
               <FileText className="w-3 h-3" /> Rx Required
             </span>
           )}
-          {medicine.discountPrice && (
+          {medicine.discountPrice !== undefined && (
             <span className="absolute top-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
               Save {Math.round(((medicine.price - medicine.discountPrice) / medicine.price) * 100)}%
             </span>
@@ -63,7 +63,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
 
       <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 transition-colors">
         <div>
-          {medicine.discountPrice ? (
+            {medicine.discountPrice !== undefined ? (
             <div className="flex items-baseline gap-1.5">
               <span className="text-base font-extrabold text-slate-900 dark:text-slate-100 transition-colors">
                 ${medicine.discountPrice.toFixed(2)}
@@ -97,3 +97,4 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
     </Card>
   );
 };
+

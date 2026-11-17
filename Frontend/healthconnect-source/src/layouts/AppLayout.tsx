@@ -31,6 +31,8 @@ import { useCartStore } from '../stores/cartStore';
 import { useEmergencyStore } from '../stores/emergencyStore';
 import { useThemeStore } from '../stores/themeStore';
 import { EmergencyTriggerModal } from '../components/emergency/EmergencyTriggerModal';
+import { NotificationBridge } from '../components/notifications/NotificationBridge';
+import { useNotifications } from '../lib/useNotifications';
 import { CartDrawer } from '../components/pharmacy/CartDrawer';
 import { UserRole } from '../types';
 
@@ -38,6 +40,8 @@ export const AppLayout: React.FC = () => {
   const { user, role, logout, switchRole } = useAuth();
   const { getItemCount, setIsDrawerOpen } = useCartStore();
   const { isActive } = useEmergencyStore();
+  const notifications = useNotifications();
+  const unreadCount = notifications.isError ? 0 : (notifications.data?.data ?? []).filter(item => !item.read).length;
   const { theme, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,6 +53,8 @@ export const AppLayout: React.FC = () => {
   const cartCount = getItemCount();
 
   const navigationItems = [
+    { name: 'Phases & Changes', path: '/app/progress', icon: FileText },
+      { name: 'Before & After', path: '/app/compare', icon: FileText },
     { name: 'Dashboard', path: '/app/dashboard', icon: Activity },
     { name: 'Doctors', path: '/app/doctors', icon: UserCheck },
     { name: 'Appointments', path: '/app/appointments', icon: Calendar },
@@ -95,12 +101,12 @@ export const AppLayout: React.FC = () => {
       {isActive && (
         <div className="bg-red-600 text-white px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-sm sticky top-0 z-50 uppercase tracking-wider">
           <Siren className="w-4 h-4 animate-bounce" />
-          <span>ACTIVE EMERGENCY BROADCAST IN PROGRESS — DISPATCH LOCATING</span>
+          <span>{isDemoMode ? 'Active demo SOS request - no services contacted' : 'Active emergency request - check status'}</span>
           <button
             onClick={() => navigate('/app/emergency')}
             className="ml-2 underline hover:text-red-100 text-xs font-extrabold"
           >
-            Open Dispatch Monitor
+            View request
           </button>
         </div>
       )}
@@ -223,7 +229,7 @@ export const AppLayout: React.FC = () => {
                 <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center text-white">
                   <Activity className="w-4 h-4" />
                 </div>
-                <span className="font-bold text-slate-800 dark:text-white text-base">HealthConnect</span>
+                <span className="hidden sm:inline font-bold text-slate-800 dark:text-white text-base">HealthConnect</span>
               </div>
 
               {/* Search Bar matching theme */}
@@ -268,10 +274,10 @@ export const AppLayout: React.FC = () => {
               <NavLink
                 to="/app/notifications"
                 className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 relative transition-colors"
-                aria-label="Notifications"
+                aria-label={'Notifications' + (unreadCount ? ', ' + unreadCount + ' unread' : '')}
               >
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900" />
+                {unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold min-w-4 rounded-full px-1 text-center">{unreadCount > 99 ? '99+' : unreadCount}</span>}
               </NavLink>
 
               {/* User Profile Chip matching theme */}
@@ -371,6 +377,7 @@ export const AppLayout: React.FC = () => {
       </div>
 
       {/* Global Modals & Drawers */}
+      <NotificationBridge />
       <EmergencyTriggerModal />
       <CartDrawer />
     </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ShoppingBag,
   Upload,
@@ -20,12 +20,30 @@ import { useCartStore } from '../../stores/cartStore';
 import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ErrorState } from '../../components/common/ErrorState';
+import { medicalRecordApi } from '../../api/medicalRecordApi';
+import { localDate } from '../../lib/frontend';
+import { isDemoMode } from '../../lib/demo';
+import { errorMessage } from '../../lib/request';
+import { Input } from '../../components/common/Input';
 
 export const PharmacyStorePage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('ALL');
   const [isUploadRxOpen, setIsUploadRxOpen] = useState(false);
   const [rxUploadSuccess, setRxUploadSuccess] = useState(false);
+  const [rxFile, setRxFile] = useState<File | null>(null);
+  const [rxDate, setRxDate] = useState(() => localDate());
+  const [rxTitle, setRxTitle] = useState('');
+  const [rxError, setRxError] = useState('');
+  const client = useQueryClient();
+  const uploadRx = useMutation({ mutationFn: () => {
+    if (!rxFile) throw new Error('Choose a prescription file.');
+    return medicalRecordApi.uploadRecord({ title: rxTitle.trim(), date: rxDate, recordType: 'PRESCRIPTION', confidentialityLevel: 'RESTRICTED', summary: 'Patient uploaded prescription; pharmacy review required.' }, rxFile);
+  }, onSuccess: () => {
+    client.invalidateQueries({ queryKey: ['medical-records'] });
+    client.invalidateQueries({ queryKey: ['pharmacy-prescriptions'] });
+    setRxUploadSuccess(true);
+  } });
   const { setIsDrawerOpen, getItemCount } = useCartStore();
 
   const { data: response, isLoading, isError, refetch } = useQuery({
@@ -53,11 +71,8 @@ export const PharmacyStorePage: React.FC = () => {
 
   const handleRxUpload = (e: React.FormEvent) => {
     e.preventDefault();
-    setRxUploadSuccess(true);
-    setTimeout(() => {
-      setRxUploadSuccess(false);
-      setIsUploadRxOpen(false);
-    }, 1800);
+    setRxError(!rxFile ? 'Choose a prescription file.' : '');
+    if (rxFile && !uploadRx.isPending) uploadRx.mutate();
   };
 
   return (
@@ -69,7 +84,7 @@ export const PharmacyStorePage: React.FC = () => {
             Digital Pharmacy & Delivery
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 transition-colors">
-            Genuine prescription medications and clinical wellness items delivered with verified chain of custody.
+            Browse medicines and wellness items. Prescription medicines require a document for pharmacy review.
           </p>
         </div>
 
@@ -77,7 +92,7 @@ export const PharmacyStorePage: React.FC = () => {
           <Button
             variant="outline"
             leftIcon={<Upload className="w-4 h-4" />}
-            onClick={() => setIsUploadRxOpen(true)}
+            onClick={() => { setIsUploadRxOpen(true); setRxUploadSuccess(false); setRxFile(null); setRxTitle(''); setRxError(''); uploadRx.reset(); }}
           >
             Upload Rx
           </Button>
@@ -101,7 +116,7 @@ export const PharmacyStorePage: React.FC = () => {
           <div>
             <h3 className="font-bold text-sm">Have a doctor's prescription?</h3>
             <p className="text-xs text-teal-100/90 dark:text-teal-200/80 mt-0.5 transition-colors">
-              Upload your written or electronic prescription. Our licensed pharmacists will prepare and verify your order.
+              Save a prescription in Medical Records, then select its document reference at checkout for review.
             </p>
           </div>
         </div>
@@ -109,7 +124,7 @@ export const PharmacyStorePage: React.FC = () => {
           variant="secondary"
           size="sm"
           className="shrink-0 bg-white text-teal-800 hover:bg-teal-50 dark:bg-slate-800 dark:text-teal-400 dark:border-slate-700 dark:hover:bg-slate-700 transition-colors"
-          onClick={() => setIsUploadRxOpen(true)}
+          onClick={() => { setIsUploadRxOpen(true); setRxUploadSuccess(false); setRxFile(null); setRxTitle(''); setRxError(''); uploadRx.reset(); }}
         >
           Upload Prescription
         </Button>
@@ -170,30 +185,35 @@ export const PharmacyStorePage: React.FC = () => {
       {isUploadRxOpen && (
         <Modal
           isOpen={isUploadRxOpen}
-          onClose={() => setIsUploadRxOpen(false)}
+          onClose={() => { if (!uploadRx.isPending) setIsUploadRxOpen(false); }}
           title="Upload Medical Prescription"
-          subtitle="Our pharmacy specialists verify all prescription orders prior to dispatch"
+          subtitle="Save a private document; select it separately when placing an order"
           maxWidth="md"
         >
           {rxUploadSuccess ? (
             <div className="py-8 text-center space-y-3">
               <CheckCircle2 className="w-12 h-12 text-emerald-600 dark:text-emerald-500 mx-auto animate-bounce transition-colors" />
-              <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 transition-colors">Prescription Received!</h4>
+              <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 transition-colors">Prescription saved to Medical Records</h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xs mx-auto transition-colors">
-                A registered pharmacist has begun verifying your prescription. We will notify you when medications are added to your cart.
+                Select this document at checkout to request pharmacy review. Saving it does not verify the prescription or place an order.
               </p>
+              <Button onClick={() => setIsUploadRxOpen(false)}>Continue shopping</Button>
             </div>
           ) : (
             <form onSubmit={handleRxUpload} className="space-y-4">
+              {(rxError || uploadRx.isError) && <p role="alert" className="text-sm text-rose-700">{rxError || errorMessage(uploadRx.error)}</p>}
+              <Input label="Prescription title" value={rxTitle} onChange={event => setRxTitle(event.target.value)} required disabled={uploadRx.isPending} />
+              <Input label="Prescription document date" type="date" value={rxDate} max={localDate()} onChange={event => setRxDate(event.target.value)} required disabled={uploadRx.isPending} />
               <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-6 text-center bg-slate-50/50 dark:bg-slate-900/50 transition-colors">
                 <FileText className="w-8 h-8 text-teal-600 dark:text-teal-500 mx-auto mb-2 transition-colors" />
                 <p className="text-xs font-bold text-slate-800 dark:text-slate-200 transition-colors">
-                  Select or drag medical prescription image / PDF
+                  Select a prescription PDF, PNG or JPEG (maximum 10 MB)
                 </p>
                 <p className="text-[11px] text-slate-400 mt-1 transition-colors">
                   Ensure doctor's signature, date, and patient name are clearly legible.
                 </p>
-                <input type="file" id="rx-upload" className="hidden" />
+                <input type="file" id="rx-upload" className="hidden" accept="application/pdf,image/png,image/jpeg" disabled={uploadRx.isPending} onChange={event => { const file = event.target.files?.[0] ?? null; setRxFile(file); if (file && !rxTitle) setRxTitle('Prescription - ' + file.name); }} />
+                {rxFile && <p className="text-xs mt-2 break-all">{rxFile.name}</p>}
                 <label
                   htmlFor="rx-upload"
                   className="mt-3 inline-block px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs transition-colors"
@@ -205,16 +225,16 @@ export const PharmacyStorePage: React.FC = () => {
               <div className="p-3 bg-teal-50 dark:bg-teal-900/30 rounded-xl text-xs text-teal-900 dark:text-teal-300 flex items-start gap-2 transition-colors">
                 <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
                 <span>
-                  All submitted prescription files are encrypted in transit and handled exclusively by licensed pharmacy partners.
+                  {isDemoMode ? 'Demo files stay in this browser. No pharmacist is contacted. Restricted privacy keeps this upload out of NFC summaries.' : 'Saved as a restricted medical record. Document access and pharmacy review require server authorization.'}
                 </span>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 transition-colors">
-                <Button variant="outline" onClick={() => setIsUploadRxOpen(false)}>
+                <Button variant="outline" disabled={uploadRx.isPending} onClick={() => setIsUploadRxOpen(false)}>
                   Cancel
                 </Button>
-                <Button variant="primary" type="submit">
-                  Submit Prescription
+                <Button variant="primary" type="submit" isLoading={uploadRx.isPending}>
+                  Save Prescription
                 </Button>
               </div>
             </form>

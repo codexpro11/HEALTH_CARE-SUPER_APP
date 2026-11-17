@@ -49,4 +49,10 @@ public class NfcCredential {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Transient
+    public boolean isExpired() {
+        return expiresAt != null
+                && !expiresAt.isAfter(LocalDateTime.now());
+    }
 }

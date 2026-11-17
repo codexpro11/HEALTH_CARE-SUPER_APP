@@ -1,4 +1,3 @@
-
 package com.healthcare.security.firebase;
 
 import com.google.firebase.auth.FirebaseToken;
@@ -19,7 +18,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -30,7 +28,9 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
     private final UserService userService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
             throws ServletException, IOException {
         try {
             String token = extractToken(request);
@@ -38,50 +38,30 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
                 FirebaseToken firebaseToken = tokenVerifier.verifyToken(token);
                 String firebaseUid = firebaseToken.getUid();
 
-                Optional<User> optionalUser = userService.findByFirebaseUid(firebaseUid);
+                User localUser = userService.findByFirebaseUid(firebaseUid)
+                        .orElseGet(() -> {
+                            log.info("First login for Firebase UID: {}. Creating local PATIENT profile.",
+                                    firebaseUid);
+                            return userService.getOrCreatePatientForFirebaseLogin(
+                                    firebaseUid,
+                                    firebaseToken.getEmail(),
+                                    firebaseToken.getName());
+                        });
 
-                if (optionalUser.isPresent()) {
-                    User localUser = optionalUser.get();
-                    if (localUser.isActive()) {
-                        AuthenticatedUser authenticatedUser = new AuthenticatedUser(localUser);
-                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                                authenticatedUser, null, authenticatedUser.getAuthorities());
-                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                        SecurityContextHolder.getContext().setAuthentication(authentication);
-                    } else {
-                        log.warn("User account is disabled for UID: {}", firebaseUid);
-                    }
+                if (localUser.isActive()) {
+                    AuthenticatedUser authenticatedUser = new AuthenticatedUser(localUser);
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    authenticatedUser, null, authenticatedUser.getAuthorities());
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
                 } else {
-                    log.info("First login for Firebase UID: {}. Creating local PATIENT profile.", firebaseUid);
-                    
-                    String email = firebaseToken.getEmail();
-                    String name = firebaseToken.getName();
-                    if (name == null || name.isEmpty()) {
-                        name = "New User";
-                    }
-                    if (email == null || email.isEmpty()) {
-                        log.error("Firebase token does not contain an email for UID {}. Cannot create user.", firebaseUid);
-                        // Can't create user without email, reject.
-                    } else {
-                        User newUser = User.builder()
-                                .firebaseUid(firebaseUid)
-                                .email(email)
-                                .fullName(name)
-                                .role(com.healthcare.user.entity.Role.PATIENT)
-                                .active(true)
-                                .build();
-                        newUser = userService.saveUser(newUser);
-                        
-                        AuthenticatedUser authenticatedUser = new AuthenticatedUser(newUser);
-                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                                authenticatedUser, null, authenticatedUser.getAuthorities());
-                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(authentication);
-                    }
+                    log.warn("User account is disabled for UID: {}", firebaseUid);
                 }
             }
         } catch (Exception e) {
+            // Leave the request unauthenticated; Spring Security will answer 401/403.
             log.error("Could not authenticate Firebase token", e);
         }
 

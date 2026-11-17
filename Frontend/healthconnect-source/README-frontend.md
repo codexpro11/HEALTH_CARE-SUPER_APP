@@ -38,4 +38,4 @@ Set `VITE_DEMO_MODE=false` and configure the Firebase/API environment values for
 
 ## Remaining phases
 
-File upload/preview/download, prescription attachments, diagnostic history, NFC/consent/insurance workflows and provider dashboards remain separate frontend milestones. Notification preference switches do not enable message delivery or security mechanisms.
+Medical record uploads accept PDF, JPG, and PNG files up to 10 MB, with preview and download controls. Demo attachments are stored in browser IndexedDB and scoped to the signed-in demo account. Live mode submits record metadata and the file as multipart form data; the backend must expose the matching medical-record endpoint. Prescription upload and order checks, diagnostic booking history, NFC/consent/insurance and provider workflows are available as frontend demo milestones. Phase 5 adds persistent SOS requests and an event-driven inbox; see Phase5-emergency-notifications.md for the implemented behavior and live integration contract. Email/SMS/push preference switches do not enable delivery; optional current-app browser alerts are configured explicitly in the Notification inbox.

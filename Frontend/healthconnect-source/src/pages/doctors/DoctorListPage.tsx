@@ -12,8 +12,8 @@ import {
   Search,
 } from 'lucide-react';
 import { doctorApi } from '../../api/doctorApi';
-import { appointmentApi } from '../../api/appointmentApi';
-import { availableTimes, localDate, dateAfterDays, validateBooking } from '../../lib/frontend';
+import { appointmentApi, getStoredAppointments } from '../../api/appointmentApi';
+import { availableTimes, localDate, dateAfterDays, validateBooking, demoSchedule } from '../../lib/frontend';
 import { errorMessage } from '../../lib/request';
 import { Doctor, ConsultationType } from '../../types';
 import { DoctorCard } from '../../components/doctors/DoctorCard';
@@ -25,6 +25,13 @@ import { Input } from '../../components/common/Input';
 import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ErrorState } from '../../components/common/ErrorState';
+
+function availableBookingTimes(doctor: Doctor, date: string) {
+  const booked = new Set(getStoredAppointments()
+    .filter(appointment => appointment.doctorId === doctor.id && ['BOOKED', 'CONFIRMED', 'IN_PROGRESS'].includes(appointment.status))
+    .map(appointment => appointment.appointmentDate + '|' + appointment.appointmentTime));
+  return availableTimes(doctor, date).filter(time => !booked.has(date + '|' + time));
+}
 
 export const DoctorListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -83,10 +90,11 @@ export const DoctorListPage: React.FC = () => {
   });
 
   const handleOpenBooking = (doctor: Doctor) => {
-    setSelectedDoctor(doctor);
-    const date = doctor.timeSlots.find(slot => slot.available && !validateBooking(slot.date, slot.time))?.date ?? dateAfterDays(1);
+    const scheduledDoctor = demoSchedule(doctor);
+    setSelectedDoctor(scheduledDoctor);
+    const date = scheduledDoctor.timeSlots.find(slot => slot.available && !validateBooking(slot.date, slot.time))?.date ?? dateAfterDays(1);
     setBookingDate(date);
-    setBookingSlot(availableTimes(doctor, date)[0] ?? '');
+    setBookingSlot(availableBookingTimes(scheduledDoctor, date)[0] ?? '');
     setBookingError(null);
     bookMutation.reset();
     setBookingType(doctor.consultationTypes.includes('VIDEO') ? 'VIDEO' : 'IN_PERSON');
@@ -232,7 +240,7 @@ export const DoctorListPage: React.FC = () => {
           ) : (
             <div className="space-y-4">
               {(bookingError || bookMutation.isError) && <p role="alert" className="text-sm text-rose-700">{bookingError || errorMessage(bookMutation.error)}</p>}
-              {availableTimes(selectedDoctor, bookingDate).length === 0 && <p role="status" className="text-sm text-amber-700">No available slots on this date. Choose another day.</p>}
+              {availableBookingTimes(selectedDoctor, bookingDate).length === 0 && <p role="status" className="text-sm text-amber-700">No available slots on this date. Choose another day.</p>}
               {/* Consultation Format Selector */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 transition-colors">
@@ -278,7 +286,7 @@ export const DoctorListPage: React.FC = () => {
                   min={localDate()}
                   onChange={(e) => {
                     setBookingDate(e.target.value);
-                    setBookingSlot(availableTimes(selectedDoctor, e.target.value)[0] ?? '');
+                    setBookingSlot(availableBookingTimes(selectedDoctor, e.target.value)[0] ?? '');
                     setBookingError(null);
                     bookMutation.reset();
                   }}
@@ -289,7 +297,7 @@ export const DoctorListPage: React.FC = () => {
                   label="Available Time Slot"
                   value={bookingSlot}
                   onChange={(e) => setBookingSlot(e.target.value)}
-                  options={[{ value: '', label: 'Choose a time slot' }, ...availableTimes(selectedDoctor, bookingDate).map((slot) => ({
+                  options={[{ value: '', label: 'Choose a time slot' }, ...availableBookingTimes(selectedDoctor, bookingDate).map((slot) => ({
                     value: slot,
                     label: slot,
                   }))]}

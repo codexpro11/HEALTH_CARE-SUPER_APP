@@ -1,48 +1,40 @@
 package com.healthcare.nfc.controller;
 
-import com.healthcare.consent.entity.ConsentScope;
+import com.healthcare.common.response.ApiResponse;
+import com.healthcare.nfc.dto.NfcAccessRequest;
 import com.healthcare.nfc.dto.NfcAccessResponse;
-import com.healthcare.nfc.service.NfcAccessService;
+import com.healthcare.nfc.service.NfcCredentialService;
 import com.healthcare.security.principal.AuthenticatedUser;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/nfc/access")
-@PreAuthorize("hasRole('DOCTOR')")
+@RequiredArgsConstructor
 public class NfcAccessController {
-    private final NfcAccessService accessService;
 
-    public NfcAccessController(NfcAccessService accessService) {
-        this.accessService = accessService;
-    }
+    private final NfcCredentialService credentialService;
 
-    @PostMapping("/validate")
-    public NfcAccessResponse validate(
-        @RequestBody ValidateRequest request,
-        Authentication authentication,
-        HttpServletRequest httpRequest
+    @PostMapping("/verify")
+    @PreAuthorize("hasAnyRole('HOSPITAL', 'DOCTOR')")
+    public ResponseEntity<ApiResponse<NfcAccessResponse>> verifyCard(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @Valid @RequestBody NfcAccessRequest request,
+            HttpServletRequest httpRequest
     ) {
-        if (request.credentialId() == null || request.credentialId().isBlank()
-                || request.scope() == null) {
-            throw new IllegalArgumentException("Credential ID and scope are required");
-        }
-
-        return accessService.validate(
-            ((AuthenticatedUser) authentication.getPrincipal()).getUser(),
-            request.credentialId(),
-            request.scope(),
-            request.purpose(),
-            httpRequest.getRemoteAddr()
+        NfcAccessResponse result = credentialService.verifyAccess(
+                authenticatedUser.getUser(),
+                request,
+                httpRequest.getRemoteAddr()
         );
-    }
 
-    public record ValidateRequest(
-        String credentialId,
-        ConsentScope scope,
-        String purpose
-    ) {
+        return ResponseEntity.ok(
+                ApiResponse.success(result, result.message())
+        );
     }
 }

@@ -1,10 +1,9 @@
 package com.healthcare.nfc.dto;
 
-import com.healthcare.consent.entity.ConsentScope;
-
 public record NfcAccessResponse(
-    boolean authorized,
-    String message,
-    ConsentScope scope
-) {
-}
+        boolean authorized,
+        String message,
+        String credentialId,
+        Long patientId,
+        String status
+) {}

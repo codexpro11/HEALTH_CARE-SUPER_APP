@@ -11,7 +11,7 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({
   variant = 'pill',
   className = '',
 }) => {
-  const { isActive, setIsTriggerModalOpen, stage } = useEmergencyStore();
+  const { isActive, setIsTriggerModalOpen } = useEmergencyStore();
 
   if (variant === 'floating') {
     return (
@@ -60,7 +60,7 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({
           <div>
             <p className="font-bold text-sm">Need immediate emergency medical response?</p>
             <p className="text-xs text-rose-100">
-              One-tap GPS dispatch connects you to nearest trauma centers and ambulances.
+              Open emergency assistance, save a location and access the emergency phone link.
             </p>
           </div>
         </div>
@@ -68,7 +68,7 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({
           onClick={() => setIsTriggerModalOpen(true)}
           className="w-full sm:w-auto px-5 py-2 bg-white text-rose-700 hover:bg-rose-50 font-bold text-xs uppercase tracking-wider rounded-xl shadow-xs transition-transform active:scale-95 shrink-0"
         >
-          {isActive ? 'View Live Dispatch' : 'Activate SOS'}
+          {isActive ? 'View request' : 'Open SOS'}
         </button>
       </div>
     );

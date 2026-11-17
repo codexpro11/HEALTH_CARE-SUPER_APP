@@ -7,7 +7,7 @@ import { mockAppointments, mockDoctors } from '../data/mockData';
 
 const APPOINTMENTS_STORAGE_KEY = 'hc_user_appointments';
 
-function getStoredAppointments(): Appointment[] {
+export function getStoredAppointments(): Appointment[] {
   try {
     const saved = localStorage.getItem(demoStorageKey(APPOINTMENTS_STORAGE_KEY));
     if (saved) return JSON.parse(saved);
@@ -22,7 +22,7 @@ function getStoredAppointments(): Appointment[] {
   }));
 }
 
-function saveStoredAppointments(list: Appointment[]) {
+export function saveStoredAppointments(list: Appointment[]) {
   try {
     localStorage.setItem(demoStorageKey(APPOINTMENTS_STORAGE_KEY), JSON.stringify(list));
   } catch {

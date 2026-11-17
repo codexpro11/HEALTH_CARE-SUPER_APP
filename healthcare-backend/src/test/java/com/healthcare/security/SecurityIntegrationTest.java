@@ -12,7 +12,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
-
+import com.healthcare.common.exception.UnauthorizedException;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.anyString;
@@ -68,37 +68,41 @@ public class SecurityIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
-    @Test
-    void testInvalidToken_ShouldReturnUnauthorized() throws Exception {
-        when(firebaseTokenVerifier.verifyToken(anyString())).thenThrow(new RuntimeException("Invalid token"));
+ @Test
+void testInvalidToken_ShouldReturnUnauthorized() throws Exception {
+    when(firebaseTokenVerifier.verifyToken(anyString()))
+            .thenThrow(new UnauthorizedException("Invalid token"));
 
-        mockMvc.perform(get("/api/v1/patient/test")
-                        .header("Authorization", "Bearer invalid-token"))
-                .andExpect(status().isForbidden()); // Because context is not set
-    }
+    mockMvc.perform(get("/api/v1/patient/test")
+                    .header("Authorization", "Bearer invalid-token"))
+            .andExpect(status().isForbidden());
+}
+   @Test
+void testUnknownUser_ShouldCreatePatientAndSucceed() throws Exception {
+    when(firebaseTokenVerifier.verifyToken(anyString())).thenReturn(mockFirebaseToken);
+    when(mockFirebaseToken.getUid()).thenReturn("unknown-uid");
+    when(mockFirebaseToken.getEmail()).thenReturn("new@test.com");
+    when(mockFirebaseToken.getName()).thenReturn("New User");
+    when(userService.findByFirebaseUid("unknown-uid")).thenReturn(Optional.empty());
 
-    @Test
-    void testUnknownUser_ShouldCreatePatientAndSucceed() throws Exception {
-        when(firebaseTokenVerifier.verifyToken(anyString())).thenReturn(mockFirebaseToken);
-        when(mockFirebaseToken.getUid()).thenReturn("unknown-uid");
-        when(mockFirebaseToken.getEmail()).thenReturn("new@test.com");
-        when(mockFirebaseToken.getName()).thenReturn("New User");
-        when(userService.findByFirebaseUid("unknown-uid")).thenReturn(Optional.empty());
+    User newUser = User.builder()
+            .id(3L)
+            .firebaseUid("unknown-uid")
+            .email("new@test.com")
+            .fullName("New User")
+            .role(Role.PATIENT)
+            .active(true)
+            .build();
 
-        User newUser = User.builder()
-                .id(3L)
-                .firebaseUid("unknown-uid")
-                .email("new@test.com")
-                .fullName("New User")
-                .role(Role.PATIENT)
-                .active(true)
-                .build();
-        when(userService.saveUser(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(newUser);
+    when(userService.getOrCreatePatientForFirebaseLogin(
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any())).thenReturn(newUser);
 
-        mockMvc.perform(get("/api/v1/patient/test")
-                        .header("Authorization", "Bearer valid-but-unknown-token"))
-                .andExpect(status().isOk());
-    }
+    mockMvc.perform(get("/api/v1/patient/test")
+                    .header("Authorization", "Bearer valid-but-unknown-token"))
+            .andExpect(status().isOk());
+}
 
     @Test
     void testPatientAccessingPatientEndpoint_ShouldSucceed() throws Exception {
@@ -125,6 +129,7 @@ public class SecurityIntegrationTest {
     @Test
     void testPatientAccessingAdminEndpoint_ShouldReturnForbidden() throws Exception {
         when(firebaseTokenVerifier.verifyToken(anyString())).thenReturn(mockFirebaseToken);
+        
         when(mockFirebaseToken.getUid()).thenReturn("patient-uid");
         when(userService.findByFirebaseUid("patient-uid")).thenReturn(Optional.of(patientUser));
 
